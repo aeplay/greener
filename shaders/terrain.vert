@@ -5,9 +5,10 @@ uniform mat4 cameraProjection;
 attribute vec3 vertices;
 
 varying vec3 position;
+uniform sampler2D texture;
 
 void main(void) {
     position = vertices;
-
-    gl_Position = cameraProjection * cameraInverse * transform * vec4(vertices, 1.0);
+    vec4 color = texture2D(texture, vec2(position.x / 256.0 + 0.5, -position.y / 256.0 + 0.5));
+    gl_Position = cameraProjection * cameraInverse * transform * vec4(vertices + vec3(0.0, 0.0, 20.0 * color.r), 1.0);
 }

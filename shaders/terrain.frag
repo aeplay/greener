@@ -3,7 +3,9 @@
 #endif
 
 varying vec3 position;
+uniform sampler2D texture;
 
 void main(void) {
-    gl_FragColor = vec4(position / 128.0, 1.0);
+    vec4 color = texture2D(texture, vec2(position.x / 256.0 + 0.5, -position.y / 256.0 + 0.5));
+    gl_FragColor = color;
 }
