@@ -1,21 +1,21 @@
 var readableSimulationFBO = new GLOW.FBO({
 	width: 256,
 	height: 256,
-	type: GL.FLOAT,
+	type: GL.UNSIGNED_BYTE,
 	magFilter: GL.LINEAR,
 	minFilter: GL.LINEAR,
 	depth: false,
-	data: new Float32Array(4 * 256 * 256)
+	data: new Uint8Array(4 * 256 * 256)
 });
 
 var writeableSimulationFBO = new GLOW.FBO({
 	width: 256,
 	height: 256,
-	type: GL.FLOAT,
+	type: GL.UNSIGNED_BYTE,
 	magFilter: GL.LINEAR,
 	minFilter: GL.LINEAR,
 	depth: false,
-	data: new Float32Array(4 * 256 * 256)
+	data: new Uint8Array(4 * 256 * 256)
 });
 
 function loadLevel (levelImage) {
