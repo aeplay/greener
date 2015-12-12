@@ -5,20 +5,28 @@
 varying vec2 uv;
 uniform sampler2D simulation;
 
+vec4 unpack (vec4 raw) {
+    return vec4((raw.x - 0.5) * 2.0, (raw.y - 0.5) * 2.0, (raw.b - 0.5) * 2.0, raw.a);
+}
+
+vec4 pack (vec4 unpacked) {
+    return vec4((unpacked.x / 2.0) + 0.5, (unpacked.y / 2.0) + 0.5, (unpacked.b / 2.0) + 0.5, unpacked.a);
+}
+
 void main(void) {
-    float dt = 1.0/60.0;
+    float dt = 1.0/120.0;
     float offset = 1.0/256.0;
 
-    vec4 dataX1 = texture2D(simulation, uv - vec2(offset, 0.0));
-    vec4 dataX2 = texture2D(simulation, uv + vec2(offset, 0.0));
-    vec4 dataY1 = texture2D(simulation, uv - vec2(0.0, offset));
-    vec4 dataY2 = texture2D(simulation, uv + vec2(0.0, offset));
+    vec4 dataX1 = unpack(texture2D(simulation, uv - vec2(offset, 0.0)));
+    vec4 dataX2 = unpack(texture2D(simulation, uv + vec2(offset, 0.0)));
+    vec4 dataY1 = unpack(texture2D(simulation, uv - vec2(0.0, offset)));
+    vec4 dataY2 = unpack(texture2D(simulation, uv + vec2(0.0, offset)));
 
     float dVelocityX = (dataX2.x - dataX1.x) / (2.0 * offset);
     float dVelocityY = (dataY2.y - dataY1.y) / (2.0 * offset);
     float velocityDivergence = (dVelocityX + dVelocityY);
 
-    vec4 dataHere = texture2D(simulation, uv);
+    vec4 dataHere = unpack(texture2D(simulation, uv));
 
     float newHeight;
 
@@ -33,5 +41,5 @@ void main(void) {
         newHeight = dataHere.b - fluxArea * velocityDivergence * dt;
     }
 
-    gl_FragColor = vec4(dataHere.xy, newHeight, dataHere.a);
+    gl_FragColor = pack(vec4(dataHere.xy, newHeight, dataHere.a));
 }
