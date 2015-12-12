@@ -8,7 +8,7 @@ uniform sampler2D pressureAndVelocity;
 uniform sampler2D particles;
 
 void main (void) {
-    float dt = 1.0/60.0;
+    float dt = 1.0/240.0;
     vec4 particle = texture2D(particles, uv);
     vec2 pPosition = particle.xy;
     vec2 pVelocity = particle.zw;
@@ -21,7 +21,7 @@ void main (void) {
     vec2 halfPosition = pPosition + 0.5 * dt * newGridVelocity;
     vec2 newPosition = halfPosition + dt * texture2D(pressureAndVelocity, halfPosition).yz;
 
-    //vec2 newPosition = pPosition + dt * newGridVelocity;
+    clamp(newPosition, 0.0, 1.0);
 
     gl_FragColor = vec4(newPosition, newVelocity);
 }

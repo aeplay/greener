@@ -5,6 +5,6 @@
 varying vec2 particleVelocity;
 
 void main (void) {
-    float weight = pow(max(0.0, 1.0 - 1.2 * distance(vec2(0.5,0.5), gl_PointCoord)), 3.0);
-    gl_FragColor = vec4(1.0, 0.0, 0.0/*particleVelocity*/, weight);
+    float weight = 0.1 * min(0.8, pow(max(0.0, 1.0 - distance(vec2(0.5,0.5), gl_PointCoord)), 4.0));
+    gl_FragColor = vec4(1.0, particleVelocity, weight);
 }

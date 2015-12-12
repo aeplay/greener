@@ -8,32 +8,34 @@ var pressureAndVelocity = new GLOW.FBO({
 	data: new Float32Array(4 * 256 * 256)
 });
 
+const NParticles = 128;
+
 var pressureAndVelocity2 = new GLOW.FBO({
-	width: 256,
-	height: 256,
+	width: NParticles,
+	height: NParticles,
 	type: GL.FLOAT,
 	magFilter: GL.LINEAR,
 	minFilter: GL.LINEAR,
 	depth: false,
-	data: new Float32Array(4 * 256 * 256)
+	data: new Float32Array(4 * NParticles * NParticles)
 });
 
 function initialParticles () {
-	const array = new Float32Array(4 * 256 * 256);
+	const array = new Float32Array(4 * NParticles * NParticles);
 
-	for (var i = 0; i < 4 * 256 * 256; i += 4) {
-		array[i] = Math.random() * 0.5 + 0.25;
-		array[i + 1] = Math.random() * 0.5 + 0.25;
-		array[i + 2] = 0;
-		array[i + 3] = 0;
+	for (var i = 0; i < 4 * NParticles * NParticles; i += 4) {
+		array[i] = Math.random();
+		array[i + 1] = Math.random();
+		array[i + 2] = 0.0;
+		array[i + 3] = 0.0;
 	}
 
 	return array;
 }
 
 var particles = new GLOW.FBO({
-	width: 256,
-	height: 256,
+	width: NParticles,
+	height: NParticles,
 	type: GL.FLOAT,
 	magFilter: GL.NEAREST,
 	minFilter: GL.NEAREST,
@@ -42,13 +44,13 @@ var particles = new GLOW.FBO({
 });
 
 var particles2 = new GLOW.FBO({
-	width: 256,
-	height: 256,
+	width: NParticles,
+	height: NParticles,
 	type: GL.FLOAT,
 	magFilter: GL.NEAREST,
 	minFilter: GL.NEAREST,
 	depth: false,
-	data: initialParticles()
+	data: null
 });
 
 var splatParticles = new GLOW.Shader({
@@ -104,8 +106,8 @@ document.body.onmousemove = function (event) {
 	const normalizedX = 2 * (-(event.clientX)/window.innerWidth + 0.5);
 	const normalizedY = 2 * (-(event.clientY)/window.innerHeight + 0.5);
 
-	slopeTilt.value[0] = 3 * ((1/Math.sqrt(2)) * normalizedX - Math.sqrt(2) * normalizedY);
-	slopeTilt.value[1] = 3 * ((1/Math.sqrt(2)) * normalizedX + Math.sqrt(2) * normalizedY);
+	slopeTilt.value[0] = 30 * normalizedX//((1/Math.sqrt(2)) * normalizedX - Math.sqrt(2) * normalizedY);
+	slopeTilt.value[1] = 30 * normalizedY//((1/Math.sqrt(2)) * normalizedX + Math.sqrt(2) * normalizedY);
 };
 
 function simulate () {
@@ -113,7 +115,7 @@ function simulate () {
 	context.enableBlend(true, {
 		equation: GL.FUNC_ADD, src: GL.SRC_ALPHA, dst: GL.ONE});
 	pressureAndVelocity.bind();
-	context.clear({red: 0, green: 0, blue: 0, alpha: 0});
+	context.clear({red: 0, green: 0, blue: 0, alpha: 1});
 	splatParticles.uniforms.particles.data = particles;
 	splatParticles.draw();
 	pressureAndVelocity.unbind();
