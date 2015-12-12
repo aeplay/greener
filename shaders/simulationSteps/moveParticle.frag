@@ -18,10 +18,10 @@ void main (void) {
     vec2 newGridVelocity = texture2D(pressureAndVelocity, pPosition).yz;
     vec2 newVelocity = r * newGridVelocity + (1.0 - r) * (pVelocity - (oldGridVelocity - newGridVelocity));
 
-    //vec2 halfPosition = 0.5 * dt * newGridVelocity;
-    //vec2 newPosition = texture2D(pressureAndVelocity, halfPosition).yz;
+    vec2 halfPosition = pPosition + 0.5 * dt * newGridVelocity;
+    vec2 newPosition = halfPosition + dt * texture2D(pressureAndVelocity, halfPosition).yz;
 
-    vec2 newPosition = pPosition + dt * newGridVelocity;
+    //vec2 newPosition = pPosition + dt * newGridVelocity;
 
     gl_FragColor = vec4(newPosition, newVelocity);
 }

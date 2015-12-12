@@ -32,8 +32,8 @@ function initialParticles () {
 }
 
 var particles = new GLOW.FBO({
-	width: 128,
-	height: 128,
+	width: 256,
+	height: 256,
 	type: GL.FLOAT,
 	magFilter: GL.NEAREST,
 	minFilter: GL.NEAREST,
@@ -42,8 +42,8 @@ var particles = new GLOW.FBO({
 });
 
 var particles2 = new GLOW.FBO({
-	width: 128,
-	height: 128,
+	width: 256,
+	height: 256,
 	type: GL.FLOAT,
 	magFilter: GL.NEAREST,
 	minFilter: GL.NEAREST,
@@ -74,12 +74,15 @@ var pip = new GLOW.Shader({
 	indices: GLOW.Geometry.Plane.indices()
 });
 
+var slopeTilt = new GLOW.Vector2(0, 0);
+
 var calculateVelocities = new GLOW.Shader({
 	vertexShader: loadSynchronous("shaders/simulation.vert"),
 	fragmentShader: loadSynchronous("shaders/simulationSteps/calculateVelocities.frag"),
 	data: {
 		vertices: GLOW.Geometry.Plane.vertices(),
-		pressureAndVelocity: pressureAndVelocity
+		pressureAndVelocity: pressureAndVelocity,
+		slopeTilt: slopeTilt
 	},
 	indices: GLOW.Geometry.Plane.indices()
 });
@@ -93,7 +96,17 @@ var moveParticles = new GLOW.Shader({
 		pressureAndVelocity: pressureAndVelocity
 	},
 	indices: GLOW.Geometry.Plane.indices()
-});
+})
+
+
+
+document.body.onmousemove = function (event) {
+	const normalizedX = 2 * (-(event.clientX)/window.innerWidth + 0.5);
+	const normalizedY = 2 * (-(event.clientY)/window.innerHeight + 0.5);
+
+	slopeTilt.value[0] = 3 * ((1/Math.sqrt(2)) * normalizedX - Math.sqrt(2) * normalizedY);
+	slopeTilt.value[1] = 3 * ((1/Math.sqrt(2)) * normalizedX + Math.sqrt(2) * normalizedY);
+};
 
 function simulate () {
 	context.enableDepthTest(false);
@@ -112,6 +125,7 @@ function simulate () {
 
 	pressureAndVelocity2.bind();
 	calculateVelocities.uniforms.pressureAndVelocity.data = pressureAndVelocity;
+	calculateVelocities.uniforms.slopeTilt = slopeTilt;
 	calculateVelocities.draw();
 	pressureAndVelocity2.unbind();
 

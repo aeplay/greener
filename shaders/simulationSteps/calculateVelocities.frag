@@ -4,6 +4,7 @@
 
 varying vec2 uv;
 uniform sampler2D pressureAndVelocity;
+uniform vec2 slopeTilt;
 
 void main (void) {
     float dt = 1.0/60.0;
@@ -20,7 +21,7 @@ void main (void) {
     vec2 newVelocity = velocity - dt * vec2(
         pressureRight - pressureLeft,
         pressureTop - pressureBottom
-    );
+    ) + slopeTilt * dt;
 
     gl_FragColor = vec4(here.x, newVelocity, 1.0);
 }
