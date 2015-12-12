@@ -6,7 +6,7 @@ varying vec2 uv;
 uniform sampler2D pressureAndVelocity;
 
 void main (void) {
-    float dt = 1.0/120.0;
+    float dt = 1.0/60.0;
     float offset = 1.0/256.0;
     float pressureRight  = texture2D(pressureAndVelocity, uv + vec2(offset, 0.0)).x;
     float pressureLeft   = texture2D(pressureAndVelocity, uv - vec2(offset, 0.0)).x;
