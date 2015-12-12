@@ -6,8 +6,8 @@ varying vec2 uv;
 uniform sampler2D simulation;
 
 void main(void) {
-    float dt = 1.0/60.0;
-    float offset = 1.0/256.0;
+    float dt = 1.0/120.0;
+    float offset = 0.75/256.0;
 
     vec4 dataX1 = texture2D(simulation, uv - vec2(offset, 0.0));
     vec4 dataX2 = texture2D(simulation, uv + vec2(offset, 0.0));
@@ -22,15 +22,16 @@ void main(void) {
 
     float newHeight;
 
-    if (dataHere.b < 0.0) {
+    if (dataHere.b <= 0.0) {
         if ((dataX1.b > 0.000001 && (dataX1.a + dataX1.b) > (dataHere.a + 0.000001))
         ||  (dataX2.b > 0.000001 && (dataX2.a + dataX2.b) > (dataHere.a + 0.000001))
         ||  (dataY1.b > 0.000001 && (dataY1.a + dataY1.b) > (dataHere.a + 0.000001))
-        ||  (dataY2.b > 0.000001 && (dataY2.a + dataY2.b) > (dataHere.a + 0.000001))) newHeight = 0.000003;
+        ||  (dataY2.b > 0.000001 && (dataY2.a + dataY2.b) > (dataHere.a + 0.000001))) newHeight = 0.0000003;
         else newHeight = dataHere.b;
     } else {
-        float fluxArea = max(dataHere.b, 0.2);
+        float fluxArea = max(dataHere.b, 0.01);
         newHeight = dataHere.b - fluxArea * velocityDivergence * dt;
+        newHeight = max(-0.00001, newHeight);
     }
 
     gl_FragColor = vec4(dataHere.xy, newHeight, dataHere.a);

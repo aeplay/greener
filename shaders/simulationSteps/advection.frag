@@ -6,7 +6,7 @@ varying vec2 uv;
 uniform sampler2D simulation;
 
 void main(void) {
-    float dt = 1.0/60.0;
+    float dt = 1.0/120.0;
     vec4 dataHere = texture2D(simulation, uv);
 
     if (dataHere.a <= 0.0) {

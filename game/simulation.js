@@ -51,6 +51,8 @@ function getWriteableSimulationFBO() {
 	return writeableSimulationFBO;
 }
 
+slopeTilt = new GLOW.Vector2(0, 0);
+
 const simulationSteps = [
 	new GLOW.Shader({
 		vertexShader: loadSynchronous("shaders/simulation.vert"),
@@ -75,11 +77,20 @@ const simulationSteps = [
 		fragmentShader: loadSynchronous("shaders/simulationSteps/velocityUpdate.frag"),
 		data: {
 			vertices: GLOW.Geometry.Plane.vertices(),
-			simulation: getReadableSimulationFBO()
+			simulation: getReadableSimulationFBO(),
+			slopeTilt: slopeTilt
 		},
 		indices: GLOW.Geometry.Plane.indices()
 	})
 ];
+
+document.body.onmousemove = function (event) {
+	const normalizedX = 2 * (-(event.clientX)/window.innerWidth + 0.5);
+	const normalizedY = 2 * (-(event.clientY)/window.innerHeight + 0.5);
+
+	slopeTilt.value[0] = 3 * ((1/Math.sqrt(2)) * normalizedX - Math.sqrt(2) * normalizedY);
+	slopeTilt.value[1] = 3 * ((1/Math.sqrt(2)) * normalizedX + Math.sqrt(2) * normalizedY);
+};
 
 function simulate () {
 	context.enableDepthTest(false);
@@ -88,6 +99,7 @@ function simulate () {
 		for (var s = 0; s < simulationSteps.length; s++) {
 			var step = simulationSteps[s];
 			step.uniforms.simulation.data = getReadableSimulationFBO();
+			if (step.uniforms.slopeTilt) step.uniforms.slopeTilt = slopeTilt;
 			writeableSimulationFBO.bind();
 			step.draw();
 			writeableSimulationFBO.unbind();

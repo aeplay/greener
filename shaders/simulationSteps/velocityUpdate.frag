@@ -4,12 +4,13 @@
 
 varying vec2 uv;
 uniform sampler2D simulation;
+uniform vec2 slopeTilt;
 
 void main(void) {
-    float dt = 1.0/60.0;
+    float dt = 1.0/120.0;
     float offset = 1.0/256.0;
-    float gravity = 0.0981;
-    float maxVelocity = 1000.0;
+    float gravity = 0.881;
+    float maxVelocity = 0.3;
 
     vec4 dataHere = texture2D(simulation, uv);
 
@@ -39,7 +40,7 @@ void main(void) {
         totalSlope.y = slope.y < 0.0 ? min(totalSlope.y, 0.0) : max(totalSlope.y, 0.0);
         totalSlope.y = slope.y == 0.0 ? 0.0 : totalSlope.y;
 
-        vec2 newVelocity = dataHere.xy - gravity * totalSlope * dt;
+        vec2 newVelocity = dataHere.xy - gravity * (totalSlope + slopeTilt) * dt;
 
         if (length(newVelocity) > maxVelocity)
             newVelocity *= maxVelocity/length(newVelocity);
