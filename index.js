@@ -26,8 +26,8 @@ window.render = function () {
 	context.clear();
 
 	simulate();
-	drawTerrain();
-	drawWater();
+	//drawTerrain();
+	//drawWater();
 	window.requestAnimationFrame(render);
 
 };

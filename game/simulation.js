@@ -1,143 +1,130 @@
-var readableTerrainAndWater = new GLOW.FBO({
+var pressureAndVelocity = new GLOW.FBO({
 	width: 256,
 	height: 256,
 	type: GL.FLOAT,
-	magFilter: GL.NEAREST,
-	minFilter: GL.NEAREST,
+	magFilter: GL.LINEAR,
+	minFilter: GL.LINEAR,
 	depth: false,
 	data: new Float32Array(4 * 256 * 256)
 });
 
-var writeableTerrainAndWater = new GLOW.FBO({
+var pressureAndVelocity2 = new GLOW.FBO({
 	width: 256,
 	height: 256,
 	type: GL.FLOAT,
-	magFilter: GL.NEAREST,
-	minFilter: GL.NEAREST,
+	magFilter: GL.LINEAR,
+	minFilter: GL.LINEAR,
 	depth: false,
 	data: new Float32Array(4 * 256 * 256)
 });
 
-getReadableTerrainAndWater = function () {
-	return readableTerrainAndWater;
-};
+function initialParticles () {
+	const array = new Float32Array(4 * 256 * 256);
 
-getWriteableTerrainAndWater = function () {
-	return writeableTerrainAndWater;
-};
+	for (var i = 0; i < 4 * 256 * 256; i += 4) {
+		array[i] = Math.random() * 0.5 + 0.25;
+		array[i + 1] = Math.random() * 0.5 + 0.25;
+		array[i + 2] = 0;
+		array[i + 3] = 0;
+	}
 
-flipTerrainAndWater = function () {
-	var temp = readableTerrainAndWater;
-	readableTerrainAndWater = writeableTerrainAndWater;
-	writeableTerrainAndWater = temp;
-};
-
-var readableOutflows = new GLOW.FBO({
-	width: 256,
-	height: 256,
-	type: GL.HALF_FLOAT,
-	magFilter: GL.LINEAR,
-	minFilter: GL.LINEAR,
-	depth: false,
-	data: new Uint8Array(8 * 256 * 256)
-});
-
-var writeableOutflows = new GLOW.FBO({
-	width: 256,
-	height: 256,
-	type: GL.HALF_FLOAT,
-	magFilter: GL.LINEAR,
-	minFilter: GL.LINEAR,
-	depth: false,
-	data: new Uint8Array(8 * 256 * 256)
-});
-
-getReadableOutflows = function () {
-	return readableOutflows;
-};
-
-getWriteableOutflows = function () {
-	return writeableOutflows;
-};
-
-flipOutflows = function () {
-	var temp = readableOutflows;
-	readableOutflows = writeableOutflows;
-	writeableOutflows = temp;
-};
-
-function loadLevel (levelImage) {
-	const load = new GLOW.Shader({
-		vertexShader: loadSynchronous("shaders/simulation.vert"),
-		fragmentShader: loadSynchronous("shaders/loadLevel.frag"),
-		data: {
-			vertices: GLOW.Geometry.Plane.vertices(),
-			level: new GLOW.Texture({data: levelImage, minFilter: GL.NEAREST})
-		},
-		indices: GLOW.Geometry.Plane.indices()
-	});
-
-	context.enableDepthTest(false);
-	getWriteableTerrainAndWater().bind();
-	load.draw();
-	getWriteableTerrainAndWater().unbind();
-	context.enableDepthTest(true);
-	flipTerrainAndWater();
+	return array;
 }
 
-window.slopeTilt = new GLOW.Vector2(0, 0);
+var particles = new GLOW.FBO({
+	width: 128,
+	height: 128,
+	type: GL.FLOAT,
+	magFilter: GL.NEAREST,
+	minFilter: GL.NEAREST,
+	depth: false,
+	data: initialParticles()
+});
 
-const outflowsStep = new GLOW.Shader({
+var particles2 = new GLOW.FBO({
+	width: 128,
+	height: 128,
+	type: GL.FLOAT,
+	magFilter: GL.NEAREST,
+	minFilter: GL.NEAREST,
+	depth: false,
+	data: initialParticles()
+});
+
+var splatParticles = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/splatParticle.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/splatParticle.frag"),
+	data: {
+		vertices: gridVertices(),
+		transform: new GLOW.Matrix4(),
+		cameraInverse: camera.inverse,
+		cameraProjection: camera.projection,
+		particles: particles
+	},
+	primitives: GL.POINTS
+});
+
+var pip = new GLOW.Shader({
 	vertexShader: loadSynchronous("shaders/simulation.vert"),
-	fragmentShader: loadSynchronous("shaders/simulationSteps/updateOutflows.frag"),
+	fragmentShader: loadSynchronous("shaders/id.frag"),
 	data: {
 		vertices: GLOW.Geometry.Plane.vertices(),
-		terrainAndWater: getReadableTerrainAndWater(),
-		oldOutflows: getReadableOutflows(),
-		slopeTilt: slopeTilt
+		texture: pressureAndVelocity
 	},
 	indices: GLOW.Geometry.Plane.indices()
 });
 
-const heightStep = new GLOW.Shader({
+var calculateVelocities = new GLOW.Shader({
 	vertexShader: loadSynchronous("shaders/simulation.vert"),
-	fragmentShader: loadSynchronous("shaders/simulationSteps/updateHeights.frag"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/calculateVelocities.frag"),
 	data: {
 		vertices: GLOW.Geometry.Plane.vertices(),
-		terrainAndWater: getReadableTerrainAndWater(),
-		outflows: getReadableOutflows()
+		pressureAndVelocity: pressureAndVelocity
 	},
 	indices: GLOW.Geometry.Plane.indices()
 });
 
-document.body.onmousemove = function (event) {
-	const normalizedX = 2 * (-(event.clientX)/window.innerWidth + 0.5);
-	const normalizedY = 2 * (-(event.clientY)/window.innerHeight + 0.5);
-
-	slopeTilt.value[0] = 0.01 * ((1/Math.sqrt(2)) * normalizedX - Math.sqrt(2) * normalizedY);
-	slopeTilt.value[1] = 0.01 * ((1/Math.sqrt(2)) * normalizedX + Math.sqrt(2) * normalizedY);
-};
+var moveParticles = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulation.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/moveParticle.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices(),
+		oldPressureAndVelocity: pressureAndVelocity,
+		pressureAndVelocity: pressureAndVelocity
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
 
 function simulate () {
 	context.enableDepthTest(false);
+	context.enableBlend(true, {
+		equation: GL.FUNC_ADD, src: GL.SRC_ALPHA, dst: GL.ONE});
+	pressureAndVelocity.bind();
+	context.clear({red: 0, green: 0, blue: 0, alpha: 0});
+	splatParticles.uniforms.particles.data = particles;
+	splatParticles.draw();
+	pressureAndVelocity.unbind();
+	context.enableBlend(false);
 
-	for (var i = 0 ; i < 30; i++) {
-		outflowsStep.uniforms.terrainAndWater.data = getReadableTerrainAndWater();
-		outflowsStep.uniforms.oldOutflows.data = getReadableOutflows();
-		outflowsStep.uniforms.slopeTilt = slopeTilt;
-		getWriteableOutflows().bind();
-		outflowsStep.draw();
-		getWriteableOutflows().unbind();
-		flipOutflows();
+	context.clear();
+	pip.uniforms.texture.data = pressureAndVelocity;
+	pip.draw();
 
-		heightStep.uniforms.terrainAndWater.data = getReadableTerrainAndWater();
-		heightStep.uniforms.outflows.data = getReadableOutflows();
-		getWriteableTerrainAndWater().bind();
-		heightStep.draw();
-		getWriteableTerrainAndWater().unbind();
-		flipTerrainAndWater();
-	}
+	pressureAndVelocity2.bind();
+	calculateVelocities.uniforms.pressureAndVelocity.data = pressureAndVelocity;
+	calculateVelocities.draw();
+	pressureAndVelocity2.unbind();
 
+	particles2.bind();
+	moveParticles.uniforms.oldPressureAndVelocity.data = pressureAndVelocity;
+	moveParticles.uniforms.pressureAndVelocity.data = pressureAndVelocity2;
+	moveParticles.uniforms.particles.data = particles;
+	moveParticles.draw();
+	particles2.unbind();
+
+	var temp = particles2;
+	particles2 = particles;
+	particles = temp;
 
 	context.enableDepthTest(true);
 }
