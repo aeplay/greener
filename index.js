@@ -21,8 +21,6 @@ context.domElement.style.width = "100%";
 viewportElem.appendChild(context.domElement);
 
 window.render = function () {
-	window.requestAnimationFrame(render);
-
 	context.cache.clear();
 
 	context.clear();
@@ -30,4 +28,6 @@ window.render = function () {
 	simulate();
 	drawTerrain();
 	drawWater();
+	window.requestAnimationFrame(render);
+
 };

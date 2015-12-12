@@ -1,4 +1,38 @@
-var readableSimulationFBO = new GLOW.FBO({
+var readableTerrainAndWater = new GLOW.FBO({
+	width: 256,
+	height: 256,
+	type: GL.HALF_FLOAT,
+	magFilter: GL.NEAREST,
+	minFilter: GL.NEAREST,
+	depth: false,
+	data: new Uint8Array(8 * 256 * 256)
+});
+
+var writeableTerrainAndWater = new GLOW.FBO({
+	width: 256,
+	height: 256,
+	type: GL.HALF_FLOAT,
+	magFilter: GL.NEAREST,
+	minFilter: GL.NEAREST,
+	depth: false,
+	data: new Uint8Array(8 * 256 * 256)
+});
+
+getReadableTerrainAndWater = function () {
+	return readableTerrainAndWater;
+};
+
+getWriteableTerrainAndWater = function () {
+	return writeableTerrainAndWater;
+};
+
+flipTerrainAndWater = function () {
+	var temp = readableTerrainAndWater;
+	readableTerrainAndWater = writeableTerrainAndWater;
+	writeableTerrainAndWater = temp;
+};
+
+var readableOutflows = new GLOW.FBO({
 	width: 256,
 	height: 256,
 	type: GL.HALF_FLOAT,
@@ -8,7 +42,7 @@ var readableSimulationFBO = new GLOW.FBO({
 	data: new Uint8Array(8 * 256 * 256)
 });
 
-var writeableSimulationFBO = new GLOW.FBO({
+var writeableOutflows = new GLOW.FBO({
 	width: 256,
 	height: 256,
 	type: GL.HALF_FLOAT,
@@ -17,6 +51,20 @@ var writeableSimulationFBO = new GLOW.FBO({
 	depth: false,
 	data: new Uint8Array(8 * 256 * 256)
 });
+
+getReadableOutflows = function () {
+	return readableOutflows;
+};
+
+getWriteableOutflows = function () {
+	return writeableOutflows;
+};
+
+flipOutflows = function () {
+	var temp = readableOutflows;
+	readableOutflows = writeableOutflows;
+	writeableOutflows = temp;
+};
 
 function loadLevel (levelImage) {
 	const load = new GLOW.Shader({
@@ -30,59 +78,36 @@ function loadLevel (levelImage) {
 	});
 
 	context.enableDepthTest(false);
-	writeableSimulationFBO.bind();
+	getWriteableTerrainAndWater().bind();
 	load.draw();
-	writeableSimulationFBO.unbind();
+	getWriteableTerrainAndWater().unbind();
 	context.enableDepthTest(true);
-	flipFBOs();
-}
-
-function flipFBOs () {
-	const temp = readableSimulationFBO;
-	readableSimulationFBO = writeableSimulationFBO;
-	writeableSimulationFBO = temp;
-}
-
-function getReadableSimulationFBO() {
-	return readableSimulationFBO;
-}
-
-function getWriteableSimulationFBO() {
-	return writeableSimulationFBO;
+	flipTerrainAndWater();
 }
 
 slopeTilt = new GLOW.Vector2(0, 0);
 
-const simulationSteps = [
-	new GLOW.Shader({
-		vertexShader: loadSynchronous("shaders/simulation.vert"),
-		fragmentShader: loadSynchronous("shaders/simulationSteps/advection.frag"),
-		data: {
-			vertices: GLOW.Geometry.Plane.vertices(),
-			simulation: getReadableSimulationFBO()
-		},
-		indices: GLOW.Geometry.Plane.indices()
-	}),
-	new GLOW.Shader({
-		vertexShader: loadSynchronous("shaders/simulation.vert"),
-		fragmentShader: loadSynchronous("shaders/simulationSteps/heightUpdate.frag"),
-		data: {
-			vertices: GLOW.Geometry.Plane.vertices(),
-			simulation: getReadableSimulationFBO()
-		},
-		indices: GLOW.Geometry.Plane.indices()
-	}),
-	new GLOW.Shader({
-		vertexShader: loadSynchronous("shaders/simulation.vert"),
-		fragmentShader: loadSynchronous("shaders/simulationSteps/velocityUpdate.frag"),
-		data: {
-			vertices: GLOW.Geometry.Plane.vertices(),
-			simulation: getReadableSimulationFBO(),
-			slopeTilt: slopeTilt
-		},
-		indices: GLOW.Geometry.Plane.indices()
-	})
-];
+const outflowsStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulation.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/updateOutflows.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices(),
+		terrainAndWater: getReadableTerrainAndWater(),
+		oldOutflows: getReadableOutflows()
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+const heightStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulation.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/updateHeights.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices(),
+		terrainAndWater: getReadableTerrainAndWater(),
+		outflows: getReadableOutflows()
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
 
 document.body.onmousemove = function (event) {
 	const normalizedX = 2 * (-(event.clientX)/window.innerWidth + 0.5);
@@ -95,17 +120,20 @@ document.body.onmousemove = function (event) {
 function simulate () {
 	context.enableDepthTest(false);
 
-	for (var i = 0; i < 3; i++) {
-		for (var s = 0; s < simulationSteps.length; s++) {
-			var step = simulationSteps[s];
-			step.uniforms.simulation.data = getReadableSimulationFBO();
-			if (step.uniforms.slopeTilt) step.uniforms.slopeTilt = slopeTilt;
-			writeableSimulationFBO.bind();
-			step.draw();
-			writeableSimulationFBO.unbind();
-			flipFBOs();
-		}
-	}
+	outflowsStep.uniforms.terrainAndWater.data = getReadableTerrainAndWater();
+	outflowsStep.uniforms.oldOutflows.data = getReadableOutflows();
+	outflowsStep.uniforms.slopeTilt = slopeTilt;
+	getWriteableOutflows().bind();
+	outflowsStep.draw();
+	getWriteableOutflows().unbind();
+	flipOutflows();
+
+	heightStep.uniforms.terrainAndWater.data = getReadableTerrainAndWater();
+	heightStep.uniforms.outflows.data = getReadableOutflows();
+	getWriteableTerrainAndWater().bind();
+	heightStep.draw();
+	getWriteableTerrainAndWater().unbind();
+	flipTerrainAndWater();
 
 	context.enableDepthTest(true);
 }

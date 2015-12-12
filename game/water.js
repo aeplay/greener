@@ -6,13 +6,13 @@ const water = new GLOW.Shader({
 		transform: new GLOW.Matrix4(),
 		cameraInverse: camera.inverse,
 		cameraProjection: camera.projection,
-		simulation: getReadableSimulationFBO()
+		terrainAndWater: getReadableTerrainAndWater()
 	},
 	indices: gridIndices()
 });
 
 function drawWater () {
-	water.uniforms.simulation.data = getReadableSimulationFBO();
+	water.uniforms.terrainAndWater.data = getReadableTerrainAndWater();
 	context.enableBlend(true, {
 		equation: GL.FUNC_ADD, src: GL.SRC_ALPHA, dst: GL.ONE_MINUS_SRC_ALPHA});
 	water.draw();

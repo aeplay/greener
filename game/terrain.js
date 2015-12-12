@@ -6,12 +6,13 @@ const terrain = new GLOW.Shader({
 		transform: new GLOW.Matrix4(),
 		cameraInverse: camera.inverse,
 		cameraProjection: camera.projection,
-		simulation: getReadableSimulationFBO()
+		terrainAndWater: getReadableTerrainAndWater(),
+		outflows: getReadableOutflows()
 	},
-	indices: gridIndices(),
+	indices: gridIndices()
 });
 
 function drawTerrain () {
-	terrain.uniforms.simulation.data = getReadableSimulationFBO();
+	terrain.uniforms.terrainAndWater.data = getReadableTerrainAndWater();
 	terrain.draw();
 }
