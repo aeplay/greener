@@ -7,6 +7,10 @@ window.context = new GLOW.Context({
 	height: window.innerHeight * devicePixelRatioToUse
 });
 
+if(!context.enableExtension( "OES_texture_float" )) {
+	throw "No support for float textures!";
+}
+
 window.viewportElem = document.getElementById("viewport");
 context.domElement.style.height = "100%";
 context.domElement.style.width = "100%";
@@ -19,5 +23,7 @@ window.render = function () {
 
 	context.clear();
 
+	simulate();
 	drawTerrain();
+	drawWater();
 };

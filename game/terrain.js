@@ -6,12 +6,12 @@ const terrain = new GLOW.Shader({
 		transform: new GLOW.Matrix4(),
 		cameraInverse: camera.inverse,
 		cameraProjection: camera.projection,
-		texture: new GLOW.Texture({data: "levels/0/terrain.png", minFilter: GL.NEAREST})
+		simulation: getReadableSimulationFBO()
 	},
 	indices: gridIndices(),
-	primitives: GL.TRIANGLES
 });
 
 function drawTerrain () {
+	terrain.uniforms.simulation.data = getReadableSimulationFBO();
 	terrain.draw();
 }
