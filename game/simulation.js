@@ -1,21 +1,21 @@
 var readableTerrainAndWater = new GLOW.FBO({
 	width: 256,
 	height: 256,
-	type: GL.HALF_FLOAT,
+	type: GL.FLOAT,
 	magFilter: GL.NEAREST,
 	minFilter: GL.NEAREST,
 	depth: false,
-	data: new Uint8Array(8 * 256 * 256)
+	data: new Float32Array(4 * 256 * 256)
 });
 
 var writeableTerrainAndWater = new GLOW.FBO({
 	width: 256,
 	height: 256,
-	type: GL.HALF_FLOAT,
+	type: GL.FLOAT,
 	magFilter: GL.NEAREST,
 	minFilter: GL.NEAREST,
 	depth: false,
-	data: new Uint8Array(8 * 256 * 256)
+	data: new Float32Array(4 * 256 * 256)
 });
 
 getReadableTerrainAndWater = function () {
@@ -85,7 +85,7 @@ function loadLevel (levelImage) {
 	flipTerrainAndWater();
 }
 
-slopeTilt = new GLOW.Vector2(0, 0);
+window.slopeTilt = new GLOW.Vector2(0, 0);
 
 const outflowsStep = new GLOW.Shader({
 	vertexShader: loadSynchronous("shaders/simulation.vert"),
@@ -93,7 +93,8 @@ const outflowsStep = new GLOW.Shader({
 	data: {
 		vertices: GLOW.Geometry.Plane.vertices(),
 		terrainAndWater: getReadableTerrainAndWater(),
-		oldOutflows: getReadableOutflows()
+		oldOutflows: getReadableOutflows(),
+		slopeTilt: slopeTilt
 	},
 	indices: GLOW.Geometry.Plane.indices()
 });
@@ -113,27 +114,30 @@ document.body.onmousemove = function (event) {
 	const normalizedX = 2 * (-(event.clientX)/window.innerWidth + 0.5);
 	const normalizedY = 2 * (-(event.clientY)/window.innerHeight + 0.5);
 
-	slopeTilt.value[0] = 3 * ((1/Math.sqrt(2)) * normalizedX - Math.sqrt(2) * normalizedY);
-	slopeTilt.value[1] = 3 * ((1/Math.sqrt(2)) * normalizedX + Math.sqrt(2) * normalizedY);
+	slopeTilt.value[0] = 0.01 * ((1/Math.sqrt(2)) * normalizedX - Math.sqrt(2) * normalizedY);
+	slopeTilt.value[1] = 0.01 * ((1/Math.sqrt(2)) * normalizedX + Math.sqrt(2) * normalizedY);
 };
 
 function simulate () {
 	context.enableDepthTest(false);
 
-	outflowsStep.uniforms.terrainAndWater.data = getReadableTerrainAndWater();
-	outflowsStep.uniforms.oldOutflows.data = getReadableOutflows();
-	outflowsStep.uniforms.slopeTilt = slopeTilt;
-	getWriteableOutflows().bind();
-	outflowsStep.draw();
-	getWriteableOutflows().unbind();
-	flipOutflows();
+	for (var i = 0 ; i < 30; i++) {
+		outflowsStep.uniforms.terrainAndWater.data = getReadableTerrainAndWater();
+		outflowsStep.uniforms.oldOutflows.data = getReadableOutflows();
+		outflowsStep.uniforms.slopeTilt = slopeTilt;
+		getWriteableOutflows().bind();
+		outflowsStep.draw();
+		getWriteableOutflows().unbind();
+		flipOutflows();
 
-	heightStep.uniforms.terrainAndWater.data = getReadableTerrainAndWater();
-	heightStep.uniforms.outflows.data = getReadableOutflows();
-	getWriteableTerrainAndWater().bind();
-	heightStep.draw();
-	getWriteableTerrainAndWater().unbind();
-	flipTerrainAndWater();
+		heightStep.uniforms.terrainAndWater.data = getReadableTerrainAndWater();
+		heightStep.uniforms.outflows.data = getReadableOutflows();
+		getWriteableTerrainAndWater().bind();
+		heightStep.draw();
+		getWriteableTerrainAndWater().unbind();
+		flipTerrainAndWater();
+	}
+
 
 	context.enableDepthTest(true);
 }

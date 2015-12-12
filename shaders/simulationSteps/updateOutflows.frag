@@ -5,11 +5,12 @@
 varying vec2 uv;
 uniform sampler2D terrainAndWater;
 uniform sampler2D oldOutflows;
+uniform vec2 slopeTilt;
 
 void main (void) {
     float dt = 1.0/60.0;
     float offset = 1.0/256.0;
-    float A = 5.0;
+    float A = 1.0;
     float l = 1.0;
     float g = 9.81;
 
@@ -23,10 +24,10 @@ void main (void) {
     vec4 oldOutflowsHere = texture2D(oldOutflows, uv);
 
     vec4 newOutflows = vec4(
-        max(0.0, oldOutflowsHere.r + dt * A * g * (here.r + here.b - (top.r + top.b))),
-        max(0.0, oldOutflowsHere.g + dt * A * g * (here.r + here.b - (right.r + right.b))),
-        max(0.0, oldOutflowsHere.b + dt * A * g * (here.r + here.b - (bottom.r + bottom.b))),
-        max(0.0, oldOutflowsHere.a + dt * A * g * (here.r + here.b - (left.r + left.b)))
+        here.b < top.r - here.r ? 0.0 : max(0.0, oldOutflowsHere.r + dt * A * g * (slopeTilt.y + here.r + here.b - (top.r + top.b))),
+        here.b < right.r - here.r ? 0.0 : max(0.0, oldOutflowsHere.g + dt * A * g * (slopeTilt.x + here.r + here.b - (right.r + right.b))),
+        here.b < bottom.r - here.r ? 0.0 : max(0.0, oldOutflowsHere.b + dt * A * g * (-slopeTilt.y + here.r + here.b - (bottom.r + bottom.b))),
+        here.b < left.r - here.r ? 0.0 : max(0.0, oldOutflowsHere.a + dt * A * g * (-slopeTilt.x + here.r + here.b - (left.r + left.b)))
     );
 
     float outflowSum = newOutflows.r + newOutflows.g + newOutflows.b + newOutflows.a;
@@ -35,7 +36,7 @@ void main (void) {
 
     outflowSum *= K;
 
-    if (outflowSum <= 0.03) outflowSum = 0.0;
+    //if (outflowSum <= 0.03) outflowSum = 0.0;
 
     gl_FragColor = newOutflows;
 }
