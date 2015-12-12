@@ -8,7 +8,7 @@ var pressureAndVelocity = new GLOW.FBO({
 	data: new Float32Array(4 * 512 * 512)
 });
 
-const NParticles = 512;
+const NParticles = 256;
 
 var pressureAndVelocity2 = new GLOW.FBO({
 	width: NParticles,
@@ -97,7 +97,8 @@ var calculateVelocities = new GLOW.Shader({
 	data: {
 		vertices: GLOW.Geometry.Plane.vertices(),
 		pressureAndVelocity: pressureAndVelocity,
-		slopeTilt: slopeTilt
+		slopeTilt: slopeTilt,
+		level: new GLOW.Texture({url: 'levels/0.png', flipY: true})
 	},
 	indices: GLOW.Geometry.Plane.indices()
 });
@@ -111,9 +112,7 @@ var moveParticles = new GLOW.Shader({
 		pressureAndVelocity: pressureAndVelocity
 	},
 	indices: GLOW.Geometry.Plane.indices()
-})
-
-
+});
 
 document.body.onmousemove = function (event) {
 	const normalizedX = 2 * (-(event.clientX)/window.innerWidth + 0.5);
