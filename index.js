@@ -8,7 +8,11 @@ window.context = new GLOW.Context({
 });
 
 if(!context.enableExtension( "OES_texture_float" )) {
-	throw "No support for float textures!";
+	alert("No support for float textures!");
+}
+
+if( !context.enableExtension( "OES_texture_float_linear" )) {
+	alert("No support for float texture linear interpolation!");
 }
 
 window.viewportElem = document.getElementById("viewport");

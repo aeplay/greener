@@ -2,8 +2,8 @@ var readableSimulationFBO = new GLOW.FBO({
 	width: 256,
 	height: 256,
 	type: GL.FLOAT,
-	magFilter: GL.NEAREST,
-	minFilter: GL.NEAREST,
+	magFilter: GL.LINEAR,
+	minFilter: GL.LINEAR,
 	depth: false,
 	data: new Float32Array(4 * 256 * 256)
 });
@@ -12,8 +12,8 @@ var writeableSimulationFBO = new GLOW.FBO({
 	width: 256,
 	height: 256,
 	type: GL.FLOAT,
-	magFilter: GL.NEAREST,
-	minFilter: GL.NEAREST,
+	magFilter: GL.LINEAR,
+	minFilter: GL.LINEAR,
 	depth: false,
 	data: new Float32Array(4 * 256 * 256)
 });
@@ -54,7 +54,25 @@ function getWriteableSimulationFBO() {
 const simulationSteps = [
 	new GLOW.Shader({
 		vertexShader: loadSynchronous("shaders/simulation.vert"),
-		fragmentShader: loadSynchronous("shaders/testSimStep.frag"),
+		fragmentShader: loadSynchronous("shaders/simulationSteps/advection.frag"),
+		data: {
+			vertices: GLOW.Geometry.Plane.vertices(),
+			simulation: getReadableSimulationFBO()
+		},
+		indices: GLOW.Geometry.Plane.indices()
+	}),
+	new GLOW.Shader({
+		vertexShader: loadSynchronous("shaders/simulation.vert"),
+		fragmentShader: loadSynchronous("shaders/simulationSteps/heightUpdate.frag"),
+		data: {
+			vertices: GLOW.Geometry.Plane.vertices(),
+			simulation: getReadableSimulationFBO()
+		},
+		indices: GLOW.Geometry.Plane.indices()
+	}),
+	new GLOW.Shader({
+		vertexShader: loadSynchronous("shaders/simulation.vert"),
+		fragmentShader: loadSynchronous("shaders/simulationSteps/velocityUpdate.frag"),
 		data: {
 			vertices: GLOW.Geometry.Plane.vertices(),
 			simulation: getReadableSimulationFBO()
@@ -66,13 +84,15 @@ const simulationSteps = [
 function simulate () {
 	context.enableDepthTest(false);
 
-	for (var i = 0; i < simulationSteps.length; i++) {
-		var step = simulationSteps[i];
-		step.uniforms.simulation.data = getReadableSimulationFBO();
-		writeableSimulationFBO.bind();
-		step.draw();
-		writeableSimulationFBO.unbind();
-		flipFBOs();
+	for (var i = 0; i < 3; i++) {
+		for (var s = 0; s < simulationSteps.length; s++) {
+			var step = simulationSteps[s];
+			step.uniforms.simulation.data = getReadableSimulationFBO();
+			writeableSimulationFBO.bind();
+			step.draw();
+			writeableSimulationFBO.unbind();
+			flipFBOs();
+		}
 	}
 
 	context.enableDepthTest(true);
