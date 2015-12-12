@@ -9,7 +9,7 @@ uniform vec2 slopeTilt;
 float k = 5.0;
 
  float P (float d) {
-     return k * (d * d * d * d * d);
+     return k * pow(d / 0.03, 8.0);
  }
 
 void main (void) {

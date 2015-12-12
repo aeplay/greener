@@ -1,14 +1,14 @@
 var pressureAndVelocity = new GLOW.FBO({
-	width: 256,
-	height: 256,
+	width: 512,
+	height: 512,
 	type: GL.FLOAT,
 	magFilter: GL.LINEAR,
 	minFilter: GL.LINEAR,
 	depth: false,
-	data: new Float32Array(4 * 256 * 256)
+	data: new Float32Array(4 * 512 * 512)
 });
 
-const NParticles = 128;
+const NParticles = 512;
 
 var pressureAndVelocity2 = new GLOW.FBO({
 	width: NParticles,
@@ -56,6 +56,19 @@ var particles2 = new GLOW.FBO({
 var splatParticles = new GLOW.Shader({
 	vertexShader: loadSynchronous("shaders/simulationSteps/splatParticle.vert"),
 	fragmentShader: loadSynchronous("shaders/simulationSteps/splatParticle.frag"),
+	data: {
+		vertices: gridVertices(),
+		transform: new GLOW.Matrix4(),
+		cameraInverse: camera.inverse,
+		cameraProjection: camera.projection,
+		particles: particles
+	},
+	primitives: GL.POINTS
+});
+
+var debugParticles = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/debugParticle.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/debugParticle.frag"),
 	data: {
 		vertices: gridVertices(),
 		transform: new GLOW.Matrix4(),
@@ -137,6 +150,9 @@ function simulate () {
 	moveParticles.uniforms.particles.data = particles;
 	moveParticles.draw();
 	particles2.unbind();
+
+	debugParticles.uniforms.particles.data = particles2;
+	debugParticles.draw();
 
 	var temp = particles2;
 	particles2 = particles;
