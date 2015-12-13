@@ -8,7 +8,7 @@ var pressureAndVelocity = new GLOW.FBO({
 	data: new Float32Array(4 * 512 * 512)
 });
 
-const NParticles = 256;
+const NParticles = 128;
 
 var pressureAndVelocity2 = new GLOW.FBO({
 	width: NParticles,
@@ -98,7 +98,7 @@ var calculateVelocities = new GLOW.Shader({
 		vertices: GLOW.Geometry.Plane.vertices(),
 		pressureAndVelocity: pressureAndVelocity,
 		slopeTilt: slopeTilt,
-		level: new GLOW.Texture({url: 'levels/0.png', flipY: true})
+		level: new GLOW.Texture({url: 'levels/1.png', flipY: true})
 	},
 	indices: GLOW.Geometry.Plane.indices()
 });
@@ -118,44 +118,45 @@ document.body.onmousemove = function (event) {
 	const normalizedX = 2 * (-(event.clientX)/window.innerWidth + 0.5);
 	const normalizedY = 2 * (-(event.clientY)/window.innerHeight + 0.5);
 
-	slopeTilt.value[0] = 30 * normalizedX//((1/Math.sqrt(2)) * normalizedX - Math.sqrt(2) * normalizedY);
-	slopeTilt.value[1] = 30 * normalizedY//((1/Math.sqrt(2)) * normalizedX + Math.sqrt(2) * normalizedY);
+	slopeTilt.value[0] = 10 * ((1/Math.sqrt(2)) * normalizedX - Math.sqrt(2) * normalizedY);
+	slopeTilt.value[1] = 10 * ((1/Math.sqrt(2)) * normalizedX + Math.sqrt(2) * normalizedY);
 };
 
 function simulate () {
 	context.enableDepthTest(false);
-	context.enableBlend(true, {
-		equation: GL.FUNC_ADD, src: GL.SRC_ALPHA, dst: GL.ONE});
-	pressureAndVelocity.bind();
-	context.clear({red: 0, green: 0, blue: 0, alpha: 1});
-	splatParticles.uniforms.particles.data = particles;
-	splatParticles.draw();
-	pressureAndVelocity.unbind();
-	context.enableBlend(false);
 
-	context.clear();
-	pip.uniforms.texture.data = pressureAndVelocity;
-	pip.draw();
+	for (var i = 0; i < 1; i++) {
+		context.enableBlend(true, {
+			equation: GL.FUNC_ADD, src: GL.SRC_ALPHA, dst: GL.ONE});
+		pressureAndVelocity.bind();
+		context.clear({red: 0, green: 0, blue: 0, alpha: 1});
+		splatParticles.uniforms.particles.data = particles;
+		splatParticles.draw();
+		pressureAndVelocity.unbind();
+		context.enableBlend(false);
 
-	pressureAndVelocity2.bind();
-	calculateVelocities.uniforms.pressureAndVelocity.data = pressureAndVelocity;
-	calculateVelocities.uniforms.slopeTilt = slopeTilt;
-	calculateVelocities.draw();
-	pressureAndVelocity2.unbind();
+		pressureAndVelocity2.bind();
+		calculateVelocities.uniforms.pressureAndVelocity.data = pressureAndVelocity;
+		calculateVelocities.uniforms.slopeTilt = slopeTilt;
+		calculateVelocities.draw();
+		pressureAndVelocity2.unbind();
 
-	particles2.bind();
-	moveParticles.uniforms.oldPressureAndVelocity.data = pressureAndVelocity;
-	moveParticles.uniforms.pressureAndVelocity.data = pressureAndVelocity2;
-	moveParticles.uniforms.particles.data = particles;
-	moveParticles.draw();
-	particles2.unbind();
+		particles2.bind();
+		moveParticles.uniforms.oldPressureAndVelocity.data = pressureAndVelocity;
+		moveParticles.uniforms.pressureAndVelocity.data = pressureAndVelocity2;
+		moveParticles.uniforms.particles.data = particles;
+		moveParticles.draw();
+		particles2.unbind();
 
-	debugParticles.uniforms.particles.data = particles2;
-	debugParticles.draw();
+		var temp = particles2;
+		particles2 = particles;
+		particles = temp;
+	}
 
-	var temp = particles2;
-	particles2 = particles;
-	particles = temp;
+	//context.clear();
+	//pip.uniforms.texture.data = pressureAndVelocity;
+	//pip.draw();
+	//
 
 	context.enableDepthTest(true);
 }

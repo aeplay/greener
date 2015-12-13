@@ -10,12 +10,12 @@ uniform sampler2D level;
 float k = 5.0;
 
  float P (float d) {
-     return k * pow(d / 0.08, 8.0);
+     return k * pow(d / 0.1, 5.0);
  }
 
 void main (void) {
-    float dt = 1.0/240.0;
-    float offset = 1.0/256.0;
+    float dt = 1.0/120.0;
+    float offset = 1.5/256.0;
 
     float pressureRight  = texture2D(pressureAndVelocity, uv + vec2(offset, 0.0)).x;
     float pressureLeft   = texture2D(pressureAndVelocity, uv - vec2(offset, 0.0)).x;
@@ -35,7 +35,9 @@ void main (void) {
     vec2 newVelocity = velocity - dt * vec2(
         P(pressureRight) - P(pressureLeft),
         P(pressureTop) - P(pressureBottom)
-    ) + slopeTilt * dt + 1000.0 * terrainAcceleration * dt;
+    ) + slopeTilt * dt + 500.0 * terrainAcceleration * dt;
+
+    newVelocity *= dt * 1.0 / (1.2 * here.x * here.x);
 
     if (uv.x < offset) {
         newVelocity.x = max(0.0, newVelocity.x);
