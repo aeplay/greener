@@ -7,7 +7,7 @@ uniform sampler2D pressureAndVelocity;
 uniform vec2 slopeTilt;
 uniform sampler2D level;
 
-float k = 5.0;
+float k = 1.0;
 
  float P (float d) {
      return k * pow(d / 0.1, 5.0);
@@ -32,28 +32,29 @@ void main (void) {
     vec4 here = texture2D(pressureAndVelocity, uv);
     vec2 velocity = here.yz;
 
-    vec2 newVelocity = velocity - dt * vec2(
+    vec2 newVelocity = velocity - 0.5 * ( dt * vec2(
         P(pressureRight) - P(pressureLeft),
         P(pressureTop) - P(pressureBottom)
-    ) + slopeTilt * dt + 500.0 * terrainAcceleration * dt;
+    ) + slopeTilt * dt - 100.0 * terrainAcceleration * dt );
 
-    newVelocity *= dt * 1.0 / (1.2 * here.x * here.x);
+    // TODO: readd
+    //newVelocity *= dt * 1.0 / (1.2 * here.x * here.x);
 
     if (uv.x < offset) {
-        newVelocity.x = max(0.0, newVelocity.x);
+        newVelocity.x = max(0.5, newVelocity.x);
     }
 
     if (uv.x > 1.0 - offset) {
-        newVelocity.x = min(0.0, newVelocity.x);
+        newVelocity.x = min(0.5, newVelocity.x);
     }
 
     if (uv.y < offset) {
-        newVelocity.y = max(0.0, newVelocity.y);
+        newVelocity.y = max(0.5, newVelocity.y);
     }
 
     if (uv.y > 1.0 - offset) {
-        newVelocity.y = min(0.0, newVelocity.y);
+        newVelocity.y = min(0.5, newVelocity.y);
     }
 
-    gl_FragColor = vec4(terrainRight/*here.x*/, newVelocity, 1.0);
+    gl_FragColor = vec4(here.x, newVelocity, 1.0);
 }
