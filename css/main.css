@@ -12,11 +12,12 @@ h1, h2 {
 	font-family: 'Caveat Brush';
 	position: absolute;
 	left: 3rem;
+	bottom: 1rem;
 	font-size: 5em;
 	color: #fff;
 }
 
 h2 {
-	top: 7rem;
+	bottom: 2rem;
 	font-size: 1.5em;
 }
