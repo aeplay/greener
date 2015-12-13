@@ -26,6 +26,9 @@ window.render = function () {
 	context.clear();
 
 	simulate();
+
+	context.clear({red: 0.1, green: 0.08, blue: 0.1, alpha: 1});
+
 	drawTerrain();
 	drawWater();
 	window.requestAnimationFrame(render);

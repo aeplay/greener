@@ -8,7 +8,7 @@ var pressureAndVelocity = new GLOW.FBO({
 	data: new Float32Array(4 * 512 * 512)
 });
 
-const NParticles = 128;
+const NParticles = 90;
 
 var pressureAndVelocity2 = new GLOW.FBO({
 	width: NParticles,
@@ -120,6 +120,10 @@ document.body.onmousemove = function (event) {
 
 	slopeTilt.value[0] = 10 * ((1/Math.sqrt(2)) * normalizedX - Math.sqrt(2) * normalizedY);
 	slopeTilt.value[1] = 10 * ((1/Math.sqrt(2)) * normalizedX + Math.sqrt(2) * normalizedY);
+
+	terrain.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, slopeTilt.value[0] / 40.0 , 0);
+	water.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, slopeTilt.value[0] / 40.0 , 0);
+	debugParticles.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, slopeTilt.value[0] / 40.0 , 0);
 };
 
 function simulate () {

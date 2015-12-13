@@ -6,6 +6,7 @@ attribute vec3 vertices;
 
 varying vec3 position;
 uniform sampler2D level;
+uniform sampler2D pressureAndVelocity;
 
 void main(void) {
     position = vertices;
