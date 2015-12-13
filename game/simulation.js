@@ -50,7 +50,7 @@ var particles2 = new GLOW.FBO({
 	magFilter: GL.NEAREST,
 	minFilter: GL.NEAREST,
 	depth: false,
-	data: null
+	data: new Uint8Array(2 * 4 * NParticles * NParticles)
 });
 
 var splatParticles = new GLOW.Shader({
@@ -146,7 +146,7 @@ function simulate () {
 
 	for (var i = 0; i < 1; i++) {
 		context.enableBlend(true, {
-			equation: GL.FUNC_ADD, src: GL.SRC_ALPHA, dst: GL.ONE});
+			equation: GL.FUNC_ADD, src: GL.SRC_ALPHA, dst: GL.ONE_MINUS_SRC_ALPHA});
 		pressureAndVelocity.bind();
 		context.clear({red: 0, green: 0.5, blue: 0.5, alpha: 1});
 		splatParticles.uniforms.particles.data = particles;

@@ -15,7 +15,7 @@ float k = 1.0;
 
 void main (void) {
     float dt = 1.0/120.0;
-    float offset = 1.5/256.0;
+    float offset = 1.0/256.0;
 
     float pressureRight  = texture2D(pressureAndVelocity, uv + vec2(offset, 0.0)).x;
     float pressureLeft   = texture2D(pressureAndVelocity, uv - vec2(offset, 0.0)).x;
@@ -32,10 +32,10 @@ void main (void) {
     vec4 here = texture2D(pressureAndVelocity, uv);
     vec2 velocity = here.yz;
 
-    vec2 newVelocity = velocity - 0.5 * ( dt * vec2(
+    vec2 newVelocity = velocity - 0.5 * ( 1.0 * dt * vec2(
         P(pressureRight) - P(pressureLeft),
         P(pressureTop) - P(pressureBottom)
-    ) + slopeTilt * dt - 100.0 * terrainAcceleration * dt );
+    ) - 1.0 * slopeTilt * dt - 500.0 * terrainAcceleration * dt );
 
     // TODO: readd
     //newVelocity *= dt * 1.0 / (1.2 * here.x * here.x);
