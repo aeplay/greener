@@ -1,24 +1,24 @@
 var pressureAndVelocity = new GLOW.FBO({
-	width: 256,
-	height: 256,
+	width: 512,
+	height: 512,
 	type: GL.HALF_FLOAT,
-	magFilter: GL.LINEAR,
-	minFilter: GL.LINEAR,
+	magFilter: GL.NEAREST,
+	minFilter: GL.NEAREST,
 	depth: false,
-	data: new Uint8Array(8 * 256 * 256)
+	data: new Uint8Array(8 * 512 * 512)
 });
 
 var pressureAndVelocity2 = new GLOW.FBO({
-	width: 256,
-	height: 256,
+	width: 512,
+	height: 512,
 	type: GL.HALF_FLOAT,
-	magFilter: GL.LINEAR,
-	minFilter: GL.LINEAR,
+	magFilter: GL.NEAREST,
+	minFilter: GL.NEAREST,
 	depth: false,
-	data: new Uint8Array(8 * 256 * 256)
+	data: new Uint8Array(8 * 512 * 512)
 });
 
-const NParticles = 64;
+const NParticles = 16;
 
 //function initialParticles () {
 //	const array = new Uint16Array(4 * NParticles * NParticles);
@@ -172,10 +172,12 @@ function simulate () {
 		particles = temp;
 	}
 
-	//context.clear();
-	//pip.uniforms.texture.data = pressureAndVelocity;
+	context.clear();
+	pip.uniforms.texture.data = pressureAndVelocity;
 	//pip.draw();
 
+	debugParticles.uniforms.particles.data = particles;
+	debugParticles.draw();
 
 	context.enableDepthTest(true);
 }

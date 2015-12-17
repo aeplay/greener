@@ -7,20 +7,20 @@ uniform sampler2D pressureAndVelocity;
 uniform vec2 slopeTilt;
 uniform sampler2D level;
 
-float k = 1.0;
+float k = 5.0;
 
- float P (float d) {
-     return k * pow(d / 0.1, 5.0);
- }
+float P (float d) {
+    return k * pow(d / 0.03, 5.0);
+}
 
 void main (void) {
     float dt = 1.0/120.0;
-    float offset = 1.0/256.0;
+    float offset = 1.0/512.0;
 
-    float pressureRight  = texture2D(pressureAndVelocity, uv + vec2(offset, 0.0)).x;
-    float pressureLeft   = texture2D(pressureAndVelocity, uv - vec2(offset, 0.0)).x;
-    float pressureTop    = texture2D(pressureAndVelocity, uv + vec2(0.0, offset)).x;
-    float pressureBottom = texture2D(pressureAndVelocity, uv - vec2(0.0, offset)).x;
+    float pressureRight  = texture2D(pressureAndVelocity, gl_FragCoord.xy / 512.0 + vec2(offset, 0.0)).x;
+    float pressureLeft   = texture2D(pressureAndVelocity, gl_FragCoord.xy / 512.0 - vec2(offset, 0.0)).x;
+    float pressureTop    = texture2D(pressureAndVelocity, gl_FragCoord.xy / 512.0 + vec2(0.0, offset)).x;
+    float pressureBottom = texture2D(pressureAndVelocity, gl_FragCoord.xy / 512.0 - vec2(0.0, offset)).x;
 
     float terrainRight  = texture2D(level, uv + vec2(offset, 0.0)).r;
     float terrainLeft   = texture2D(level, uv - vec2(offset, 0.0)).r;

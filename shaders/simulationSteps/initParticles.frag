@@ -9,5 +9,5 @@ float rand(vec2 co){
 }
 
 void main (void) {
-    gl_FragColor = vec4(rand(uv), rand(uv.yx * 3.14), 0.5, 0.5);
+    gl_FragColor = vec4((uv / 7.0), 0.5, 0.5);
 }

@@ -20,5 +20,5 @@ function drawWater () {
 	context.enableBlend(false);
 
 	debugParticles.uniforms.particles.data = particles;
-	debugParticles.draw();
+	//debugParticles.draw();
 }

@@ -16,9 +16,9 @@ void main(void) {
     float pressureTop    = texture2D(pressureAndVelocity, uv + vec2(0.0, offset)).x;
     float pressureBottom = texture2D(pressureAndVelocity, uv - vec2(0.0, offset)).x;
 
-    if (pressureRight > 0.1 || pressureTop > 0.1 || pressureBottom > 0.1 || pressureLeft > 0.1) {
-        gl_FragColor = vec4(0.0, 0.5, 0.0, 1.0);
-    } else {
+    //if (pressureRight > 0.1 || pressureTop > 0.1 || pressureBottom > 0.1 || pressureLeft > 0.1) {
+    //    gl_FragColor = vec4(0.0, 0.5, 0.0, 1.0);
+    //} else {
         gl_FragColor = vec4(color.r * 0.7, 0.7 * color.r, 0.5 * color.r, 1.0);
-    }
+    //}
 }

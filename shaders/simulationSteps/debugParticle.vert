@@ -8,8 +8,9 @@ attribute vec3 vertices;
 varying vec2 particleVelocity;
 
 void main (void) {
-    vec4 particle = texture2D(particles, vertices.xy/256.0);
+    vec4 particle = texture2D(particles, vertices.xy/16.0);
     particleVelocity = particle.zw;
     gl_PointSize = 2.0;
-    gl_Position = cameraProjection * cameraInverse * transform * vec4(particle.x * 256.0 - 128.0, -particle.y * 256.0 + 128.0, 5.0, 1.0);
+    // gl_Position = cameraProjection * cameraInverse * transform * vec4(particle.x * 256.0 - 128.0, -particle.y * 256.0 + 128.0, 5.0, 1.0);
+    gl_Position = vec4(2.0 * (particle.xy - 0.5), 0.0, 1.0);
 }
