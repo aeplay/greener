@@ -1,6 +1,6 @@
 // CONSTANTS
 
-const nParticles = 128;
+const nParticles = 100;
 const fieldResolution = 512;
 
 const dt = 1/120;
@@ -8,7 +8,10 @@ const particleInfluenceRadius = 8;
 const pressureForceMultiplier = 1;
 const pressureForceExponent = 5;
 const initialDensity = 0.3;
-const particleViscosity = 0.1;
+const particleViscosity = 0.3;
+
+const terrainResolution = 256;
+const terrainSize = 256;
 
 // BUFFERS
 const level = new GLOW.Texture({url: 'levels/0.png', flipY: true});
@@ -240,13 +243,13 @@ particlePositionY.flip();
 // RUN
 
 window.addEventListener("deviceorientation", function (event) {
-	slopeTilt.value[0] = -event.gamma / 50;
-	slopeTilt.value[1] = event.beta / 50;
+	slopeTilt.value[0] = -event.beta / 50;
+	slopeTilt.value[1] = -event.gamma / 50;
 }, true);
 
 function simulate () {
 
-	for (var i = 0; i < 5; i++) {
+	for (var i = 0; i < 10; i++) {
 		context.enableDepthTest(false);
 
 		splatParticlesStep.uniforms.particlePositionX.data = particlePositionX.input;
@@ -317,8 +320,8 @@ function simulate () {
 	}
 	// draw
 
-	debugDrawDensityAndVelocity.uniforms.map.data = densityAndVelocity2;
-	debugDrawDensityAndVelocity.draw();
+	//debugDrawDensityAndVelocity.uniforms.map.data = densityAndVelocity2;
+	//debugDrawDensityAndVelocity.draw();
 
 	//debugDrawFloatMaps.uniforms.red = particlePositionX1;
 	//debugDrawFloatMaps.uniforms.green = particlePositionY1;
@@ -328,7 +331,7 @@ function simulate () {
 	debugDrawParticles.uniforms.particlePositionX.data = particlePositionX.input;
 	debugDrawParticles.uniforms.particlePositionY.data = particlePositionY.input;
 
-	//debugDrawParticles.draw();
+	// debugDrawParticles.draw();
 
 	context.enableDepthTest(true);
 }

@@ -22,15 +22,13 @@ viewportElem.appendChild(context.domElement);
 
 window.render = function () {
 	context.cache.clear();
-
-	context.clear();
+	context.clear({red: 0.1, green: 0.08, blue: 0.1, alpha: 1});
 
 	simulate();
 
-	//context.clear({red: 0.1, green: 0.08, blue: 0.1, alpha: 1});
 
-	//drawTerrain();
-	//drawWater();
+	drawTerrain();
+	drawWater();
 	window.requestAnimationFrame(render);
 
 };

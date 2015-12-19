@@ -2,17 +2,18 @@ const terrain = new GLOW.Shader({
 	vertexShader: loadSynchronous("shaders/terrain.vert"),
 	fragmentShader: loadSynchronous("shaders/terrain.frag"),
 	data: {
-		vertices: gridVertices(),
+		vertices: gridVertices(terrainResolution),
 		transform: new GLOW.Matrix4(),
 		cameraInverse: camera.inverse,
 		cameraProjection: camera.projection,
-		level: new GLOW.Texture({url: 'levels/1.png'}),
-		pressureAndVelocity: pressureAndVelocity
+		level: level,
+		densityAndVelocity: densityAndVelocity2,
+		terrainSize: new GLOW.Float(terrainSize)
 	},
-	indices: gridIndices()
+	indices: gridIndices(terrainResolution)
 });
 
 function drawTerrain () {
-	terrain.uniforms.pressureAndVelocity.data = pressureAndVelocity;
+	terrain.uniforms.densityAndVelocity.data = densityAndVelocity2;
 	terrain.draw();
 }

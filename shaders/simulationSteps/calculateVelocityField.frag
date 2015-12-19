@@ -18,7 +18,7 @@ float pressure (float density) {
 }
 
 void main (void) {
-    float offset = 1.0/fieldResolution;
+    float offset = 2.0/fieldResolution;
 
     float densityN = texture2D(densityAndVelocity, fieldCoordinate + vec2(0.0, offset)).x;
     float densityE = texture2D(densityAndVelocity, fieldCoordinate + vec2(offset, 0.0)).x;

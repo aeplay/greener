@@ -2,23 +2,21 @@ const water = new GLOW.Shader({
 	vertexShader: loadSynchronous("shaders/water.vert"),
 	fragmentShader: loadSynchronous("shaders/water.frag"),
 	data: {
-		vertices: gridVertices(),
+		vertices: gridVertices(terrainResolution),
 		transform: new GLOW.Matrix4(),
 		cameraInverse: camera.inverse,
 		cameraProjection: camera.projection,
-		pressureAndVelocity: pressureAndVelocity,
-		level: new GLOW.Texture({url: 'levels/1.png'})
+		densityAndVelocity: densityAndVelocity2,
+		level: level,
+		terrainSize: new GLOW.Float(terrainSize)
 	},
-	indices: gridIndices()
+	indices: gridIndices(terrainResolution)
 });
 
 function drawWater () {
-	water.uniforms.pressureAndVelocity.data = pressureAndVelocity;
+	water.uniforms.densityAndVelocity.data = densityAndVelocity2;
 	context.enableBlend(true, {
 		equation: GL.FUNC_ADD, src: GL.SRC_ALPHA, dst: GL.ONE_MINUS_SRC_ALPHA});
 	water.draw();
 	context.enableBlend(false);
-
-	debugParticles.uniforms.particles.data = particles;
-	//debugParticles.draw();
 }
