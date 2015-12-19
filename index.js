@@ -31,6 +31,6 @@ window.render = function () {
 
 	//drawTerrain();
 	//drawWater();
-	//window.requestAnimationFrame(render);
+	window.requestAnimationFrame(render);
 
 };

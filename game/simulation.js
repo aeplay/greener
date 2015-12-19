@@ -1,183 +1,334 @@
-var pressureAndVelocity = new GLOW.FBO({
-	width: 512,
-	height: 512,
-	type: GL.HALF_FLOAT,
-	magFilter: GL.NEAREST,
-	minFilter: GL.NEAREST,
-	depth: false,
-	data: new Uint8Array(8 * 512 * 512)
-});
+// CONSTANTS
 
-var pressureAndVelocity2 = new GLOW.FBO({
-	width: 512,
-	height: 512,
-	type: GL.HALF_FLOAT,
-	magFilter: GL.NEAREST,
-	minFilter: GL.NEAREST,
-	depth: false,
-	data: new Uint8Array(8 * 512 * 512)
-});
+const nParticles = 128;
+const fieldResolution = 512;
 
-const NParticles = 16;
+const dt = 1/120;
+const particleInfluenceRadius = 8;
+const pressureForceMultiplier = 1;
+const pressureForceExponent = 5;
+const initialDensity = 0.3;
+const particleViscosity = 0.1;
 
-//function initialParticles () {
-//	const array = new Uint16Array(4 * NParticles * NParticles);
-//
-//	for (var i = 0; i < 4 * NParticles * NParticles; i += 4) {
-//		array[i] = Math.random() * 0xFFFF;
-//		array[i + 1] = Math.random() * 0xFFFF;
-//		array[i + 2] = 0.5 * 0xFFF ;
-//		array[i + 3] = 0.5 * 0xFFF;
-//	}
-//
-//	return array;
-//}
+// BUFFERS
+const level = new GLOW.Texture({url: 'levels/0.png', flipY: true});
 
-var particles = new GLOW.FBO({
-	width: NParticles,
-	height: NParticles,
-	type: GL.HALF_FLOAT,
-	magFilter: GL.NEAREST,
-	minFilter: GL.NEAREST,
-	depth: false,
-	data: new Uint8Array(2 * 4 * NParticles * NParticles)
-});
+function EncodedFloatDoubleBuffer (dimension) {
+	this.input = new GLOW.FBO({
+		width: dimension, height: dimension,
+		type: GL.UNSIGNED_BYTE,
+		magFilter: GL.NEAREST, minFilter: GL.NEAREST,
+		depth: false, data: new Uint8Array(4 * dimension * dimension)
+	});
 
-var particles2 = new GLOW.FBO({
-	width: NParticles,
-	height: NParticles,
-	type: GL.HALF_FLOAT,
-	magFilter: GL.NEAREST,
-	minFilter: GL.NEAREST,
-	depth: false,
-	data: new Uint8Array(2 * 4 * NParticles * NParticles)
-});
+	this.output = new GLOW.FBO({
+		width: dimension, height: dimension,
+		type: GL.UNSIGNED_BYTE,
+		magFilter: GL.NEAREST, minFilter: GL.NEAREST,
+		depth: false, data: new Uint8Array(4 * dimension * dimension)
+	});
+}
 
-var splatParticles = new GLOW.Shader({
-	vertexShader: loadSynchronous("shaders/simulationSteps/splatParticle.vert"),
-	fragmentShader: loadSynchronous("shaders/simulationSteps/splatParticle.frag"),
-	data: {
-		vertices: gridVertices(),
-		transform: new GLOW.Matrix4(),
-		cameraInverse: camera.inverse,
-		cameraProjection: camera.projection,
-		particles: particles
-	},
-	primitives: GL.POINTS
-});
-
-var debugParticles = new GLOW.Shader({
-	vertexShader: loadSynchronous("shaders/simulationSteps/debugParticle.vert"),
-	fragmentShader: loadSynchronous("shaders/simulationSteps/debugParticle.frag"),
-	data: {
-		vertices: gridVertices(),
-		transform: new GLOW.Matrix4(),
-		cameraInverse: camera.inverse,
-		cameraProjection: camera.projection,
-		particles: particles
-	},
-	primitives: GL.POINTS
-});
-
-var pip = new GLOW.Shader({
-	vertexShader: loadSynchronous("shaders/simulation.vert"),
-	fragmentShader: loadSynchronous("shaders/id.frag"),
-	data: {
-		vertices: GLOW.Geometry.Plane.vertices(),
-		texture: pressureAndVelocity
-	},
-	indices: GLOW.Geometry.Plane.indices()
-});
-
-var slopeTilt = new GLOW.Vector2(0, 0);
-
-var calculateVelocities = new GLOW.Shader({
-	vertexShader: loadSynchronous("shaders/simulation.vert"),
-	fragmentShader: loadSynchronous("shaders/simulationSteps/calculateVelocities.frag"),
-	data: {
-		vertices: GLOW.Geometry.Plane.vertices(),
-		pressureAndVelocity: pressureAndVelocity,
-		slopeTilt: slopeTilt,
-		level: new GLOW.Texture({url: 'levels/1.png', flipY: true})
-	},
-	indices: GLOW.Geometry.Plane.indices()
-});
-
-var moveParticles = new GLOW.Shader({
-	vertexShader: loadSynchronous("shaders/simulation.vert"),
-	fragmentShader: loadSynchronous("shaders/simulationSteps/moveParticle.frag"),
-	data: {
-		vertices: GLOW.Geometry.Plane.vertices(),
-		oldPressureAndVelocity: pressureAndVelocity,
-		pressureAndVelocity: pressureAndVelocity
-	},
-	indices: GLOW.Geometry.Plane.indices()
-});
-
-var initParticles = new GLOW.Shader({
-	vertexShader: loadSynchronous("shaders/simulation.vert"),
-	fragmentShader: loadSynchronous("shaders/simulationSteps/initParticles.frag"),
-	data: {
-		vertices: GLOW.Geometry.Plane.vertices(),
-	},
-	indices: GLOW.Geometry.Plane.indices()
-});
-
-context.enableDepthTest(false);
-particles.bind();
-initParticles.draw();
-particles.unbind();
-context.enableDepthTest(true);
-
-document.body.onmousemove = function (event) {
-	const normalizedX = 2 * (-(event.clientX)/window.innerWidth + 0.5);
-	const normalizedY = 2 * (-(event.clientY)/window.innerHeight + 0.5);
-
-	slopeTilt.value[0] = 10 * ((1/Math.sqrt(2)) * normalizedX - Math.sqrt(2) * normalizedY);
-	slopeTilt.value[1] = 10 * ((1/Math.sqrt(2)) * normalizedX + Math.sqrt(2) * normalizedY);
-
-	terrain.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, slopeTilt.value[0] / 40.0 , 0);
-	water.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, slopeTilt.value[0] / 40.0 , 0);
-	debugParticles.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, slopeTilt.value[0] / 40.0 , 0);
+EncodedFloatDoubleBuffer.prototype.flip = function flip () {
+	const temp = this.output;
+	this.output = this.input;
+	this.input = temp;
 };
 
-function simulate () {
-	context.enableDepthTest(false);
+const particlePositionX = new EncodedFloatDoubleBuffer(nParticles);
+const particlePositionY = new EncodedFloatDoubleBuffer(nParticles);
+const particleVelocityX = new EncodedFloatDoubleBuffer(nParticles);
+const particleVelocityY = new EncodedFloatDoubleBuffer(nParticles);
 
-	for (var i = 0; i < 1; i++) {
+function fieldBuffer () {
+	return new GLOW.FBO({
+		width: fieldResolution, height: fieldResolution,
+		type: GL.HALF_FLOAT,
+		magFilter: GL.LINEAR, minFilter: GL.LINEAR,
+		depth: false, data: new Uint8Array(4 * fieldResolution * fieldResolution)
+	});
+}
+
+const densityAndVelocity1 = fieldBuffer();
+const densityAndVelocity2 = fieldBuffer();
+
+// SHADERS
+
+console.log("initializeParticlesXStep...");
+
+const initializeParticlesXStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/initializeParticlesPositionX.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices() // full screen quad
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+console.log("initializeParticlesYStep...");
+
+const initializeParticlesYStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/initializeParticlesPositionY.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices() // full screen quad
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+console.log("splatParticlesStep...");
+
+const splatParticlesStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/splatParticles.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/splatParticles.frag"),
+	data: {
+		particleLookupCoordinate: gridVertices(nParticles),
+		particlePositionX: particlePositionX.input,
+		particlePositionY: particlePositionY.input,
+		particleVelocityX: particleVelocityX.input,
+		particleVelocityY: particleVelocityY.input,
+		particleInfluenceRadius: new GLOW.Float(particleInfluenceRadius)
+	},
+	primitives: GL.POINTS
+});
+
+console.log("calculateVelocityFieldStep...");
+
+const slopeTilt = new GLOW.Vector2(-0.1, 0);
+
+const calculateVelocityFieldStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/fieldStep.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/calculateVelocityField.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices(), // full screen quad
+		densityAndVelocity: densityAndVelocity1,
+		fieldResolution: new GLOW.Float(fieldResolution),
+		pressureForceMultiplier: new GLOW.Float(pressureForceMultiplier),
+		pressureForceExponent: new GLOW.Float(pressureForceExponent),
+		initialDensity: new GLOW.Float(initialDensity),
+		dt: new GLOW.Float(dt),
+		slopeTilt: slopeTilt,
+		level: level
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+console.log("moveParticlesPositionXStep...");
+
+const moveParticlesPositionXStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/moveParticlesPositionX.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices(), // full screen quad
+		oldDensityAndVelocity: densityAndVelocity1,
+		densityAndVelocity: densityAndVelocity2,
+		particlePositionX: particlePositionX.input,
+		particlePositionY: particlePositionY.input,
+		particleVelocityX: particleVelocityX.input,
+		particleVelocityY: particleVelocityY.input,
+		dt: new GLOW.Float(dt),
+		particleViscosity: new GLOW.Float(particleViscosity)
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+const moveParticlesPositionYStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/moveParticlesPositionY.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices(), // full screen quad
+		oldDensityAndVelocity: densityAndVelocity1,
+		densityAndVelocity: densityAndVelocity2,
+		particlePositionX: particlePositionX.input,
+		particlePositionY: particlePositionY.input,
+		particleVelocityX: particleVelocityX.input,
+		particleVelocityY: particleVelocityY.input,
+		dt: new GLOW.Float(dt),
+		particleViscosity: new GLOW.Float(particleViscosity)
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+const moveParticlesVelocityXStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/moveParticlesVelocityX.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices(), // full screen quad
+		oldDensityAndVelocity: densityAndVelocity1,
+		densityAndVelocity: densityAndVelocity2,
+		particlePositionX: particlePositionX.input,
+		particlePositionY: particlePositionY.input,
+		particleVelocityX: particleVelocityX.input,
+		particleVelocityY: particleVelocityY.input,
+		dt: new GLOW.Float(dt),
+		particleViscosity: new GLOW.Float(particleViscosity)
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+const moveParticlesVelocityYStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/moveParticlesVelocityY.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices(), // full screen quad
+		oldDensityAndVelocity: densityAndVelocity1,
+		densityAndVelocity: densityAndVelocity2,
+		particlePositionX: particlePositionX.input,
+		particlePositionY: particlePositionY.input,
+		particleVelocityX: particleVelocityX.input,
+		particleVelocityY: particleVelocityY.input,
+		dt: new GLOW.Float(dt),
+		particleViscosity: new GLOW.Float(particleViscosity)
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+// DEBUG SHADERS
+
+console.log("debugDrawParticles...");
+
+const debugDrawParticles = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/debugDrawParticles.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/debugDrawParticles.frag"),
+	data: {
+		particleLookupCoordinate: gridVertices(nParticles),
+		particlePositionX: particlePositionX.input,
+		particlePositionY: particlePositionY.input,
+		nParticles: new GLOW.Float(nParticles)
+	},
+	primitives: GL.POINTS
+});
+
+console.log("debugDrawFloatMaps...");
+
+const debugDrawFloatMaps = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/debugDrawFloatMaps.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices(), // full screen quad
+		red: particlePositionX.input,
+		green: particlePositionY.input
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+console.log("debugDrawDensityAndVelocity...");
+
+const debugDrawDensityAndVelocity = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/debugDraw4HalfFloatsMaps.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices(), // full screen quad
+		map: densityAndVelocity1
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+// INIT
+
+particlePositionX.output.bind();
+initializeParticlesXStep.draw();
+particlePositionX.output.unbind();
+
+particlePositionY.output.bind();
+initializeParticlesYStep.draw();
+particlePositionY.output.unbind();
+
+particlePositionX.flip();
+particlePositionY.flip();
+
+// RUN
+
+window.addEventListener("deviceorientation", function (event) {
+	slopeTilt.value[0] = -event.gamma / 50;
+	slopeTilt.value[1] = event.beta / 50;
+}, true);
+
+function simulate () {
+
+	for (var i = 0; i < 5; i++) {
+		context.enableDepthTest(false);
+
+		splatParticlesStep.uniforms.particlePositionX.data = particlePositionX.input;
+		splatParticlesStep.uniforms.particlePositionY.data = particlePositionY.input;
+
 		context.enableBlend(true, {
-			equation: GL.FUNC_ADD, src: GL.SRC_ALPHA, dst: GL.ONE_MINUS_SRC_ALPHA});
-		pressureAndVelocity.bind();
-		context.clear({red: 0, green: 0.5, blue: 0.5, alpha: 1});
-		splatParticles.uniforms.particles.data = particles;
-		splatParticles.draw();
-		pressureAndVelocity.unbind();
+			equation: GL.FUNC_ADD, src: GL.SRC_ALPHA, dst: GL.ONE_MINUS_SRC_ALPHA
+		});
+		densityAndVelocity1.bind();
+		context.clear({red: 0, green: 0.5, blue: 0.5});
+		splatParticlesStep.draw();
+		densityAndVelocity1.unbind();
 		context.enableBlend(false);
 
-		pressureAndVelocity2.bind();
-		calculateVelocities.uniforms.pressureAndVelocity.data = pressureAndVelocity;
-		calculateVelocities.uniforms.slopeTilt = slopeTilt;
-		calculateVelocities.draw();
-		pressureAndVelocity2.unbind();
+		calculateVelocityFieldStep.uniforms.densityAndVelocity.data = densityAndVelocity1;
+		calculateVelocityFieldStep.uniforms.slopeTilt = slopeTilt;
+		densityAndVelocity2.bind();
+		calculateVelocityFieldStep.draw();
+		densityAndVelocity2.unbind();
 
-		particles2.bind();
-		moveParticles.uniforms.oldPressureAndVelocity.data = pressureAndVelocity;
-		moveParticles.uniforms.pressureAndVelocity.data = pressureAndVelocity2;
-		moveParticles.uniforms.particles.data = particles;
-		moveParticles.draw();
-		particles2.unbind();
+		// move particles (pos)
 
-		var temp = particles2;
-		particles2 = particles;
-		particles = temp;
+		moveParticlesPositionXStep.uniforms.particlePositionX.data = particlePositionX.input;
+		moveParticlesPositionXStep.uniforms.particlePositionY.data = particlePositionY.input;
+		moveParticlesPositionXStep.uniforms.particleVelocityX.data = particleVelocityX.input;
+		moveParticlesPositionXStep.uniforms.particleVelocityY.data = particleVelocityY.input;
+
+		particlePositionX.output.bind();
+		moveParticlesPositionXStep.draw();
+		particlePositionX.output.unbind();
+
+		moveParticlesPositionYStep.uniforms.particlePositionX.data = particlePositionX.input;
+		moveParticlesPositionYStep.uniforms.particlePositionY.data = particlePositionY.input;
+		moveParticlesPositionYStep.uniforms.particleVelocityX.data = particleVelocityX.input;
+		moveParticlesPositionYStep.uniforms.particleVelocityY.data = particleVelocityY.input;
+
+		particlePositionY.output.bind();
+		moveParticlesPositionYStep.draw();
+		particlePositionY.output.unbind();
+
+		// move particles (vel)
+
+		moveParticlesVelocityXStep.uniforms.particlePositionX.data = particlePositionX.input;
+		moveParticlesVelocityXStep.uniforms.particlePositionY.data = particlePositionY.input;
+		moveParticlesVelocityXStep.uniforms.particleVelocityX.data = particleVelocityX.input;
+		moveParticlesVelocityXStep.uniforms.particleVelocityY.data = particleVelocityY.input;
+
+		particleVelocityX.output.bind();
+		moveParticlesVelocityXStep.draw();
+		particleVelocityX.output.unbind();
+
+		moveParticlesVelocityYStep.uniforms.particlePositionX.data = particlePositionX.input;
+		moveParticlesVelocityYStep.uniforms.particlePositionY.data = particlePositionY.input;
+		moveParticlesVelocityYStep.uniforms.particleVelocityX.data = particleVelocityX.input;
+		moveParticlesVelocityYStep.uniforms.particleVelocityY.data = particleVelocityY.input;
+
+		particleVelocityY.output.bind();
+		moveParticlesVelocityYStep.draw();
+		particleVelocityY.output.unbind();
+
+		// move particles (flip)
+
+		particlePositionX.flip();
+		particlePositionY.flip();
+		particleVelocityX.flip();
+		particleVelocityY.flip();
+
 	}
+	// draw
 
-	context.clear();
-	pip.uniforms.texture.data = pressureAndVelocity;
-	//pip.draw();
+	debugDrawDensityAndVelocity.uniforms.map.data = densityAndVelocity2;
+	debugDrawDensityAndVelocity.draw();
 
-	debugParticles.uniforms.particles.data = particles;
-	debugParticles.draw();
+	//debugDrawFloatMaps.uniforms.red = particlePositionX1;
+	//debugDrawFloatMaps.uniforms.green = particlePositionY1;
+	//
+	//debugDrawFloatMaps.draw();
+
+	debugDrawParticles.uniforms.particlePositionX.data = particlePositionX.input;
+	debugDrawParticles.uniforms.particlePositionY.data = particlePositionY.input;
+
+	//debugDrawParticles.draw();
 
 	context.enableDepthTest(true);
 }
