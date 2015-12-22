@@ -5,6 +5,10 @@
 uniform sampler2D particlePositionX;
 uniform sampler2D particlePositionY;
 uniform float nParticles;
+uniform	mat4 transform;
+uniform mat4 cameraInverse;
+uniform mat4 cameraProjection;
+uniform float terrainSize;
 
 attribute vec3 particleLookupCoordinate;
 
@@ -19,5 +23,6 @@ void main (void) {
     );
 
     gl_PointSize = 2.0;
-    gl_Position = vec4((position - 0.5) * 2.0, 0.0, 1.0);
+    //    gl_Position = vec4((position - 0.5) * 2.0, 0.0, 1.0);
+    gl_Position = cameraProjection * cameraInverse * transform * vec4(terrainSize * (position - vec2(0.5, 0.5)), 5.0, 1.0);
 }

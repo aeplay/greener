@@ -36,10 +36,14 @@ void main (void) {
     float density = densityAndVelocityHere.x;
     vec2 velocity = densityAndVelocityHere.yz;
 
-    vec2 newVelocity = velocity - 0.5 * dt * vec2(
+    vec2 pressureForce = vec2(
         pressure(densityE) - pressure(densityW),
         pressure(densityN) - pressure(densityS)
-    ) - 6.0 * dt * slopeTilt - 100.0 * dt * terrainAcceleration;
+    );
+
+    //pressureForce = min(length(pressureForce), 100.0) * normalize(pressureForce);
+
+    vec2 newVelocity = velocity - 0.5 * dt * pressureForce - 6.0 * dt * slopeTilt - 2000.0 * dt * terrainAcceleration;
 
     gl_FragColor = vec4(density, newVelocity, 1.0);
 }

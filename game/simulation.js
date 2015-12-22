@@ -1,20 +1,20 @@
 // CONSTANTS
 
-const nParticles = 100;
+const nParticles = 160;
 const fieldResolution = 512;
 
 const dt = 1/120;
-const particleInfluenceRadius = 8;
-const pressureForceMultiplier = 1;
+const particleInfluenceRadius = 4;
+const pressureForceMultiplier = 5;
 const pressureForceExponent = 5;
-const initialDensity = 0.3;
+const initialDensity = 0.2;
 const particleViscosity = 0.3;
 
 const terrainResolution = 256;
 const terrainSize = 256;
 
 // BUFFERS
-const level = new GLOW.Texture({url: 'levels/0.png', flipY: true});
+const level = new GLOW.Texture({url: 'levels/2.png', flipY: true});
 
 function EncodedFloatDoubleBuffer (dimension) {
 	this.input = new GLOW.FBO({
@@ -46,7 +46,7 @@ const particleVelocityY = new EncodedFloatDoubleBuffer(nParticles);
 function fieldBuffer () {
 	return new GLOW.FBO({
 		width: fieldResolution, height: fieldResolution,
-		type: GL.HALF_FLOAT,
+		type: GL.HALF_FLOAT_OEM,
 		magFilter: GL.LINEAR, minFilter: GL.LINEAR,
 		depth: false, data: new Uint8Array(4 * fieldResolution * fieldResolution)
 	});
@@ -54,6 +54,8 @@ function fieldBuffer () {
 
 const densityAndVelocity1 = fieldBuffer();
 const densityAndVelocity2 = fieldBuffer();
+const densityAndVelocityHalfBlurred = fieldBuffer();
+const densityAndVelocityBlurred = fieldBuffer();
 
 // SHADERS
 
@@ -112,6 +114,30 @@ const calculateVelocityFieldStep = new GLOW.Shader({
 		dt: new GLOW.Float(dt),
 		slopeTilt: slopeTilt,
 		level: level
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+console.log("blurDensityAndVelocityHalfStep...");
+
+const blurDensityAndVelocityHalfStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/blurDensityX.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/blurDensity.frag"),
+	data: {
+		a_position: GLOW.Geometry.Plane.vertices(), // full screen quad
+		s_texture: densityAndVelocity2
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+console.log("blurDensityAndVelocityStep...");
+
+const blurDensityAndVelocityStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/blurDensityY.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/blurDensity.frag"),
+	data: {
+		a_position: GLOW.Geometry.Plane.vertices(), // full screen quad
+		s_texture: densityAndVelocityHalfBlurred
 	},
 	indices: GLOW.Geometry.Plane.indices()
 });
@@ -197,7 +223,11 @@ const debugDrawParticles = new GLOW.Shader({
 		particleLookupCoordinate: gridVertices(nParticles),
 		particlePositionX: particlePositionX.input,
 		particlePositionY: particlePositionY.input,
-		nParticles: new GLOW.Float(nParticles)
+		nParticles: new GLOW.Float(nParticles),
+		transform: new GLOW.Matrix4(),
+		cameraInverse: camera.inverse,
+		cameraProjection: camera.projection,
+		terrainSize: new GLOW.Float(terrainSize)
 	},
 	primitives: GL.POINTS
 });
@@ -243,9 +273,40 @@ particlePositionY.flip();
 // RUN
 
 window.addEventListener("deviceorientation", function (event) {
-	slopeTilt.value[0] = -event.beta / 50;
-	slopeTilt.value[1] = -event.gamma / 50;
+	slopeTilt.value[0] = -event.beta / 10;
+	slopeTilt.value[1] = -event.gamma / 10;
 }, true);
+
+var mouseDownPosition;
+
+controller.onmousedown = function (e) {
+	mouseDownPosition = [e.clientX, e.clientY];
+	console.log(mouseDownPosition);
+	e.preventDefault();
+	return false;
+};
+
+document.body.onmousemove = function (e) {
+	if (mouseDownPosition) {
+		const delta = new GLOW.Vector2(e.clientX - mouseDownPosition[0], e.clientY - mouseDownPosition[1]);
+
+		if (delta.length() > 2 * 16) {
+			delta.multiplyScalar(2 * 16 / delta.length());
+		}
+
+		console.log(delta.value);
+
+		controller.style.transform = "translate(" + delta.value[0] + "px, " + delta.value[1] + "px)";
+		slopeTilt.value[0] = -delta.value[0] / 20;
+		slopeTilt.value[1] = delta.value[1] / 20;
+	}
+};
+
+document.body.onmouseup = function (e) {
+	mouseDownPosition = null;
+	controller.style.transform = "";
+	slopeTilt.value[0] = slopeTilt.value[1] = 0;
+};
 
 function simulate () {
 
@@ -320,6 +381,14 @@ function simulate () {
 	}
 	// draw
 
+	densityAndVelocityHalfBlurred.bind();
+	blurDensityAndVelocityHalfStep.draw();
+	densityAndVelocityHalfBlurred.unbind();
+
+	densityAndVelocityBlurred.bind();
+	blurDensityAndVelocityStep.draw();
+	densityAndVelocityBlurred.unbind();
+
 	//debugDrawDensityAndVelocity.uniforms.map.data = densityAndVelocity2;
 	//debugDrawDensityAndVelocity.draw();
 
@@ -328,10 +397,12 @@ function simulate () {
 	//
 	//debugDrawFloatMaps.draw();
 
-	debugDrawParticles.uniforms.particlePositionX.data = particlePositionX.input;
-	debugDrawParticles.uniforms.particlePositionY.data = particlePositionY.input;
-
-	// debugDrawParticles.draw();
-
 	context.enableDepthTest(true);
+
+	terrain.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, -slopeTilt.value[0] / 40.0 , 0);
+	water.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, -slopeTilt.value[0] / 40.0 , 0);
+
+	//debugDrawParticles.uniforms.particlePositionX.data = particlePositionX.input;
+	//debugDrawParticles.uniforms.particlePositionY.data = particlePositionY.input;
+	//debugDrawParticles.draw();
 }

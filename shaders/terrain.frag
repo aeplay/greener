@@ -19,6 +19,6 @@ void main(void) {
     //if (pressureRight > 0.1 || pressureTop > 0.1 || pressureBottom > 0.1 || pressureLeft > 0.1) {
     //    gl_FragColor = vec4(0.0, 0.5, 0.0, 1.0);
     //} else {
-        gl_FragColor = vec4(color.r * 0.7, 0.7 * color.r, 0.5 * color.r, 1.0);
+        gl_FragColor = vec4(0.3 + color.r * 0.7, 0.3 + 0.7 * color.r, 0.3 + 0.5 * color.r, 1.0);
     //}
 }

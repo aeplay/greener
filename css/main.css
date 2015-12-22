@@ -21,3 +21,26 @@ h2 {
 	bottom: 2rem;
 	font-size: 1.5em;
 }
+
+#controller {
+	position: absolute;
+	top: 7rem;
+	right: 7rem;
+	z-index: 2;
+	width: 2rem;
+	height: 2rem;
+	background-color: #ffffff;
+	border-radius: 1rem;
+}
+
+#controllerArea {
+	content: '';
+	display: block;
+	position: absolute;
+	right: 5.4rem;
+	top: 5.4rem;
+	width: 5rem;
+	height: 5rem;
+	border-radius: 2.5rem;
+	border: 0.1rem solid rgba(255, 255, 255, 0.3);
+}
