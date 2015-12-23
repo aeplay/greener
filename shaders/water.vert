@@ -15,5 +15,5 @@ void main(void) {
     cameraInverseV = cameraInverse;
     vec4 densityData = texture2D(densityAndVelocity, position.xy);
     vec4 levelData = texture2D(level, position.xy);
-    gl_Position = cameraProjection * cameraInverse * transform * vec4((vertices - vec3(0.5, 0.5, 0.0)) * terrainSize + vec3(0.0, 0.0, 40.0 * levelData.r + 10.0 * densityData.r), 1.0);
+    gl_Position = cameraProjection * cameraInverse * transform * vec4((vertices - vec3(0.5, 0.5, 0.0)) * terrainSize + vec3(0.0, 0.0, 60.0 * levelData.r + 10.0 * densityData.r), 1.0);
 }

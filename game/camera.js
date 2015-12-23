@@ -1,7 +1,7 @@
 const center = new GLOW.Vector3(0, 0, -25);
 const cameraDistance = 350;
 const cameraAzimuth = -0.5 * Math.PI;
-const cameraAltitude = 0.2 * Math.PI;
+const cameraAltitude = 0.29 * Math.PI;
 
 const camera = new GLOW.Camera({
 	useTarget: true,

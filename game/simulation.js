@@ -43,19 +43,21 @@ const particlePositionY = new EncodedFloatDoubleBuffer(nParticles);
 const particleVelocityX = new EncodedFloatDoubleBuffer(nParticles);
 const particleVelocityY = new EncodedFloatDoubleBuffer(nParticles);
 
-function fieldBuffer () {
+function fieldBuffer (resolution) {
 	return new GLOW.FBO({
-		width: fieldResolution, height: fieldResolution,
+		width: resolution, height: resolution,
 		type: GL.HALF_FLOAT_OEM,
 		magFilter: GL.LINEAR, minFilter: GL.LINEAR,
-		depth: false, data: new Uint8Array(4 * fieldResolution * fieldResolution)
+		depth: false, data: new Uint8Array(4 * resolution * resolution)
 	});
 }
 
-const densityAndVelocity1 = fieldBuffer();
-const densityAndVelocity2 = fieldBuffer();
-const densityAndVelocityHalfBlurred = fieldBuffer();
-const densityAndVelocityBlurred = fieldBuffer();
+const densityAndVelocity1 = fieldBuffer(fieldResolution);
+const densityAndVelocity2 = fieldBuffer(fieldResolution);
+const densityAndVelocityHalfBlurred = fieldBuffer(fieldResolution);
+const densityAndVelocityBlurred = fieldBuffer(fieldResolution);
+const foliageHalf = fieldBuffer(fieldResolution / 4);
+const foliage = fieldBuffer(fieldResolution / 4);
 
 // SHADERS
 
@@ -125,7 +127,8 @@ const blurDensityAndVelocityHalfStep = new GLOW.Shader({
 	fragmentShader: loadSynchronous("shaders/simulationSteps/blurDensity.frag"),
 	data: {
 		a_position: GLOW.Geometry.Plane.vertices(), // full screen quad
-		s_texture: densityAndVelocity2
+		s_texture: densityAndVelocity2,
+		blurFactor: new GLOW.Float(1)
 	},
 	indices: GLOW.Geometry.Plane.indices()
 });
@@ -137,7 +140,34 @@ const blurDensityAndVelocityStep = new GLOW.Shader({
 	fragmentShader: loadSynchronous("shaders/simulationSteps/blurDensity.frag"),
 	data: {
 		a_position: GLOW.Geometry.Plane.vertices(), // full screen quad
-		s_texture: densityAndVelocityHalfBlurred
+		s_texture: densityAndVelocityHalfBlurred,
+		blurFactor: new GLOW.Float(1)
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+console.log("densityToFoliageHalfStep...");
+
+const densityToFoliageHalfStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/blurDensityX.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/densityToFoliageHalf.frag"),
+	data: {
+		a_position: GLOW.Geometry.Plane.vertices(), // full screen quad
+		s_texture: densityAndVelocityBlurred,
+		blurFactor: new GLOW.Float(12)
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+console.log("densityToFoliageStep...");
+
+const densityToFoliageStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/blurDensityY.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/densityToFoliage.frag"),
+	data: {
+		a_position: GLOW.Geometry.Plane.vertices(), // full screen quad
+		s_texture: foliageHalf,
+		blurFactor: new GLOW.Float(12)
 	},
 	indices: GLOW.Geometry.Plane.indices()
 });
@@ -281,7 +311,6 @@ var mouseDownPosition;
 
 controller.onmousedown = function (e) {
 	mouseDownPosition = [e.clientX, e.clientY];
-	console.log(mouseDownPosition);
 	e.preventDefault();
 	return false;
 };
@@ -389,6 +418,14 @@ function simulate () {
 	blurDensityAndVelocityStep.draw();
 	densityAndVelocityBlurred.unbind();
 
+	foliageHalf.bind();
+	densityToFoliageHalfStep.draw();
+	foliageHalf.unbind();
+
+	foliage.bind();
+	densityToFoliageStep.draw();
+	foliage.unbind();
+
 	//debugDrawDensityAndVelocity.uniforms.map.data = densityAndVelocity2;
 	//debugDrawDensityAndVelocity.draw();
 
@@ -400,6 +437,7 @@ function simulate () {
 	context.enableDepthTest(true);
 
 	terrain.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, -slopeTilt.value[0] / 40.0 , 0);
+	grass.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, -slopeTilt.value[0] / 40.0 , 0);
 	water.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, -slopeTilt.value[0] / 40.0 , 0);
 
 	//debugDrawParticles.uniforms.particlePositionX.data = particlePositionX.input;

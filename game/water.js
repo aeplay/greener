@@ -1,3 +1,5 @@
+console.log("water...");
+
 const water = new GLOW.Shader({
 	vertexShader: loadSynchronous("shaders/water.vert"),
 	fragmentShader: loadSynchronous("shaders/water.frag"),
