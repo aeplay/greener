@@ -8,7 +8,7 @@ body {
 	/*height: 1024px;*/
 }
 
-h1, h2 {
+h1, h2, h3 {
 	font-family: 'Caveat Brush';
 	position: absolute;
 	left: 3rem;
@@ -20,6 +20,14 @@ h1, h2 {
 h2 {
 	bottom: 2rem;
 	font-size: 1.5em;
+}
+
+h3 {
+	font-size: 1.2em;
+	bottom: 4rem;
+	left: 3rem;
+	right: 3rem;
+	text-align: center;
 }
 
 #controller {

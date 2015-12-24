@@ -11,5 +11,11 @@ void main(void) {
     vec4 color = texture2D(level, uv);
     vec4 foliageData = texture2D(foliage, uv);
 
-    gl_FragColor = vec4(0.3 + color.r * 0.7, 0.3 + 0.7 * color.r + 0.2 * clamp(0.0, foliageData.r * 10.0, 0.6), 0.3 + 0.5 * color.r, 1.0);
+    vec4 heightColor = vec4(0.3 + color.r * 0.7, 0.3 + 0.7 * color.r + 0.2 * clamp(0.0, foliageData.r * 10.0, 0.6), 0.3 + 0.5 * color.r, 1.0);
+
+    if (foliageData.g > 0.03) {
+        heightColor *= vec4(0.6, 0.6, 0.6, 1.0);
+    }
+
+    gl_FragColor = heightColor;
 }

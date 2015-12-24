@@ -13,7 +13,7 @@ const particleViscosity = 0.3;
 const terrainResolution = 256;
 const terrainSize = 256;
 
-const level = new GLOW.Texture({url: 'levels/level1.png?' + Math.floor(Math.random() * 10000), flipY: true, onLoadComplete: function () {
+const level = new GLOW.Texture({url: 'levels/level.png?' + Math.floor(Math.random() * 10000), flipY: true, onLoadComplete: function () {
 	var canvas = document.createElement('canvas');
 	canvas.width = level.data.width;
 	canvas.height = level.data.height;
@@ -79,6 +79,12 @@ const densityAndVelocityHalfBlurred = fieldBuffer(fieldResolution);
 const densityAndVelocityBlurred = fieldBuffer(fieldResolution);
 const foliageHalf = fieldBuffer(fieldResolution / 4);
 const foliage = new FieldDoubleBuffer(fieldResolution / 4);
+const foliageReadBack = new GLOW.FBO({
+	width: fieldResolution/4, height: fieldResolution/4,
+	type: GL.UNSIGNED_BYTE,
+	magFilter: GL.LINEAR, minFilter: GL.LINEAR,
+	depth: false, data: new Uint8Array(4 * (fieldResolution/4) * (fieldResolution/4))
+});
 
 // SHADERS
 
@@ -169,6 +175,18 @@ const densityToFoliageStep = new GLOW.Shader({
 		blurFactor: new GLOW.Float(12),
 		oldFoliage: foliage.input,
 		dt: new GLOW.Float(dt)
+	},
+	indices: GLOW.Geometry.Plane.indices()
+});
+
+console.log("foliageReadBackStep...");
+
+const foliageReadBackStep = new GLOW.Shader({
+	vertexShader: loadSynchronous("shaders/simulationSteps/fieldStep.vert"),
+	fragmentShader: loadSynchronous("shaders/simulationSteps/foliageReadBack.frag"),
+	data: {
+		vertices: GLOW.Geometry.Plane.vertices(), // full screen quad
+		foliage: foliage.input
 	},
 	indices: GLOW.Geometry.Plane.indices()
 });
@@ -500,6 +518,12 @@ function simulate () {
 
 	foliage.flip();
 
+	foliageReadBackStep.uniforms.foliage.data = foliage.input;
+	foliageReadBack.bind();
+	foliageReadBackStep.draw()
+	readTrees();
+	foliageReadBack.unbind();
+
 	//debugDrawDensityAndVelocity.uniforms.map.data = densityAndVelocity2;
 	//debugDrawDensityAndVelocity.draw();
 
@@ -512,6 +536,7 @@ function simulate () {
 
 	terrain.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, -slopeTilt.value[0] / 40.0 , 0);
 	trees.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, -slopeTilt.value[0] / 40.0 , 0);
+	treeLeaves.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, -slopeTilt.value[0] / 40.0 , 0);
 	grass.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, -slopeTilt.value[0] / 40.0 , 0);
 	water.uniforms.transform.data.setRotation(slopeTilt.value[1] / 40.0, -slopeTilt.value[0] / 40.0 , 0);
 
