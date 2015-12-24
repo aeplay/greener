@@ -7,6 +7,14 @@ window.context = new GLOW.Context({
 	height: window.innerHeight * devicePixelRatioToUse
 });
 
+//if(!context.enableExtension( "OES_texture_float" )) {
+//	alert("No support for float textures!");
+//}
+
+//if( !context.enableExtension( "OES_texture_float_linear" )) {
+//	alert("No support for float texture linear interpolation!");
+//}
+
 if(!context.enableExtension( "OES_texture_half_float" )) {
 	alert("No support for float textures!");
 }

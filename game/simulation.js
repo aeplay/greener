@@ -1,9 +1,9 @@
 // CONSTANTS
 
-const nParticles = 160;
+var nParticles = 160;
 const fieldResolution = 512;
 
-const dt = 1/120;
+	const dt = 1/120;
 const particleInfluenceRadius = 4;
 const pressureForceMultiplier = 5;
 const pressureForceExponent = 5;
@@ -13,9 +13,23 @@ const particleViscosity = 0.3;
 const terrainResolution = 256;
 const terrainSize = 256;
 
-// BUFFERS
-const level = new GLOW.Texture({url: 'levels/2.png', flipY: true});
+const level = new GLOW.Texture({url: 'levels/level.png?' + Math.floor(Math.random() * 10000), flipY: true, onLoadComplete: function () {
+	var canvas = document.createElement('canvas');
+	canvas.width = level.data.width;
+	canvas.height = level.data.height;
+	canvas.getContext('2d').drawImage(level.data, 0, 0, level.data.width, level.data.height);
 
+	var pixelData = canvas.getContext('2d').getImageData(0, 0, level.data.width, level.data.height).data;
+
+	initTerrain();
+	initWater();
+
+	loadWater(pixelData, level.data.width, level.data.height);
+	loadTrees(pixelData, level.data.width, level.data.height);
+	render();
+}});
+
+// BUFFERS
 function EncodedFloatDoubleBuffer (dimension) {
 	this.input = new GLOW.FBO({
 		width: dimension, height: dimension,
@@ -38,10 +52,10 @@ EncodedFloatDoubleBuffer.prototype.flip = function flip () {
 	this.input = temp;
 };
 
-const particlePositionX = new EncodedFloatDoubleBuffer(nParticles);
-const particlePositionY = new EncodedFloatDoubleBuffer(nParticles);
-const particleVelocityX = new EncodedFloatDoubleBuffer(nParticles);
-const particleVelocityY = new EncodedFloatDoubleBuffer(nParticles);
+var particlePositionX = new EncodedFloatDoubleBuffer(nParticles);
+var particlePositionY = new EncodedFloatDoubleBuffer(nParticles);
+var particleVelocityX = new EncodedFloatDoubleBuffer(nParticles);
+var particleVelocityY = new EncodedFloatDoubleBuffer(nParticles);
 
 function fieldBuffer (resolution) {
 	return new GLOW.FBO({
@@ -52,36 +66,21 @@ function fieldBuffer (resolution) {
 	});
 }
 
+function FieldDoubleBuffer (resolution) {
+	this.input = fieldBuffer(resolution);
+	this.output = fieldBuffer(resolution);
+}
+
+FieldDoubleBuffer.prototype.flip = EncodedFloatDoubleBuffer.prototype.flip;
+
 const densityAndVelocity1 = fieldBuffer(fieldResolution);
 const densityAndVelocity2 = fieldBuffer(fieldResolution);
 const densityAndVelocityHalfBlurred = fieldBuffer(fieldResolution);
 const densityAndVelocityBlurred = fieldBuffer(fieldResolution);
 const foliageHalf = fieldBuffer(fieldResolution / 4);
-const foliage = fieldBuffer(fieldResolution / 4);
+const foliage = new FieldDoubleBuffer(fieldResolution / 4);
 
 // SHADERS
-
-console.log("initializeParticlesXStep...");
-
-const initializeParticlesXStep = new GLOW.Shader({
-	vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
-	fragmentShader: loadSynchronous("shaders/simulationSteps/initializeParticlesPositionX.frag"),
-	data: {
-		vertices: GLOW.Geometry.Plane.vertices() // full screen quad
-	},
-	indices: GLOW.Geometry.Plane.indices()
-});
-
-console.log("initializeParticlesYStep...");
-
-const initializeParticlesYStep = new GLOW.Shader({
-	vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
-	fragmentShader: loadSynchronous("shaders/simulationSteps/initializeParticlesPositionY.frag"),
-	data: {
-		vertices: GLOW.Geometry.Plane.vertices() // full screen quad
-	},
-	indices: GLOW.Geometry.Plane.indices()
-});
 
 console.log("splatParticlesStep...");
 
@@ -167,7 +166,9 @@ const densityToFoliageStep = new GLOW.Shader({
 	data: {
 		a_position: GLOW.Geometry.Plane.vertices(), // full screen quad
 		s_texture: foliageHalf,
-		blurFactor: new GLOW.Float(12)
+		blurFactor: new GLOW.Float(12),
+		oldFoliage: foliage.input,
+		dt: new GLOW.Float(dt)
 	},
 	indices: GLOW.Geometry.Plane.indices()
 });
@@ -289,16 +290,86 @@ const debugDrawDensityAndVelocity = new GLOW.Shader({
 
 // INIT
 
-particlePositionX.output.bind();
-initializeParticlesXStep.draw();
-particlePositionX.output.unbind();
+function loadWater(levelData, width, height) {
+	const waterSpawnLocations = [];
 
-particlePositionY.output.bind();
-initializeParticlesYStep.draw();
-particlePositionY.output.unbind();
+	for (var x = 0; x < width; x++) {
+		for (var y = 0; y < height; y++) {
+			var blue = levelData[(x + width * y) * 4 + 2];
 
-particlePositionX.flip();
-particlePositionY.flip();
+			if (blue === 255) {
+				var position = [x / width, 1.0 - y / height];
+				//console.log("found water spawn location!", position);
+				waterSpawnLocations.push(position);
+			}
+		}
+	}
+
+	console.log(waterSpawnLocations.length);
+	const waterSpawnLocationLengthRoot = Math.floor(Math.sqrt(waterSpawnLocations.length));
+	nParticles = waterSpawnLocationLengthRoot * 32;
+	console.log(nParticles);
+
+	const spawnPointMapData = new Uint8Array(4 * waterSpawnLocations.length);
+
+	for (var i = 0; i < waterSpawnLocations.length; i++) {
+		spawnPointMapData[i * 4 + 0] = Math.floor(waterSpawnLocations[i][0] * 255);
+		spawnPointMapData[i * 4 + 1] = Math.floor(waterSpawnLocations[i][1] * 255);
+	}
+
+	const spawnPointMap = new GLOW.Texture({
+		data: spawnPointMapData,
+		type: GL.UNSIGNED_BYTE,
+		width: waterSpawnLocationLengthRoot,
+		height: waterSpawnLocationLengthRoot,
+		minFilter: GL.NEAREST,
+		magFilter: GL.NEAREST,
+		wrap: GL.CLAMP_TO_EDGE
+	});
+
+	console.log("initializeParticlesXStep...");
+
+	const initializeParticlesXStep = new GLOW.Shader({
+		vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
+		fragmentShader: loadSynchronous("shaders/simulationSteps/initializeParticlesPositionX.frag"),
+		data: {
+			vertices: GLOW.Geometry.Plane.vertices(), // full screen quad
+			spawnPointMap: spawnPointMap,
+			nSpawnPointsRoot: new GLOW.Float(waterSpawnLocationLengthRoot)
+		},
+		indices: GLOW.Geometry.Plane.indices()
+	});
+
+	console.log("initializeParticlesYStep...");
+
+	const initializeParticlesYStep = new GLOW.Shader({
+		vertexShader: loadSynchronous("shaders/simulationSteps/particleStep.vert"),
+		fragmentShader: loadSynchronous("shaders/simulationSteps/initializeParticlesPositionY.frag"),
+		data: {
+			vertices: GLOW.Geometry.Plane.vertices(), // full screen quad
+			spawnPointMap: spawnPointMap,
+			nSpawnPointsRoot: new GLOW.Float(waterSpawnLocationLengthRoot)
+		},
+		indices: GLOW.Geometry.Plane.indices()
+	});
+
+	particlePositionX = new EncodedFloatDoubleBuffer(nParticles);
+	particlePositionY = new EncodedFloatDoubleBuffer(nParticles);
+	particleVelocityX = new EncodedFloatDoubleBuffer(nParticles);
+	particleVelocityY = new EncodedFloatDoubleBuffer(nParticles);
+
+	particlePositionX.output.bind();
+	initializeParticlesXStep.draw();
+	particlePositionX.output.unbind();
+
+	particlePositionY.output.bind();
+	initializeParticlesYStep.draw();
+	particlePositionY.output.unbind();
+
+	particlePositionX.flip();
+	particlePositionY.flip();
+}
+
 
 // RUN
 
@@ -422,9 +493,12 @@ function simulate () {
 	densityToFoliageHalfStep.draw();
 	foliageHalf.unbind();
 
-	foliage.bind();
+	foliage.output.bind();
+	densityToFoliageStep.uniforms.oldFoliage.data = foliage.input;
 	densityToFoliageStep.draw();
-	foliage.unbind();
+	foliage.output.unbind();
+
+	foliage.flip();
 
 	//debugDrawDensityAndVelocity.uniforms.map.data = densityAndVelocity2;
 	//debugDrawDensityAndVelocity.draw();

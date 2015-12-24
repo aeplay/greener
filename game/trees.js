@@ -132,32 +132,52 @@ function branchTriangles (outIndices, nBranchesPerTree, nTrees) {
 
 const nBranchesPerTree = 1 + 4 + 16 + 64;
 const treePositions = [
-	[0.25, 0.25],
-	[0.5, 0.25],
-	[0.75, 0.25],
-	[0.25, 0.5],
-	[0.5, 0.5],
-	[0.75, 0.5],
-	[0.25, 0.75],
-	[0.5, 0.75],
-	[0.75, 0.75]
+	//[0.25, 0.25],
+	//[0.5, 0.25],
+	//[0.75, 0.25],
+	//[0.25, 0.5],
+	//[0.5, 0.5],
+	//[0.75, 0.5],
+	//[0.25, 0.75],
+	//[0.5, 0.75],
+	//[0.75, 0.75]
 ];
 
-const trees = new GLOW.Shader({
-	vertexShader: loadSynchronous("shaders/trees.vert"),
-	fragmentShader: loadSynchronous("shaders/trees.frag"),
-	data: {
-		vertices: branchVertices(new Float32Array(treePositions.length * nBranchesPerTree * 3 * 6), nBranchesPerTree, treePositions.length),
-		info: branchInfo(new Float32Array(treePositions.length * nBranchesPerTree * 4 * 6), nBranchesPerTree, treePositions.length, 4),
-		transform: new GLOW.Matrix4(),
-		cameraInverse: camera.inverse,
-		cameraProjection: camera.projection,
-		terrainSize: new GLOW.Float(terrainSize),
-		foliage: foliage
-	},
-	indices: branchTriangles(new Uint16Array(treePositions.length * nBranchesPerTree * 3 * 6), nBranchesPerTree, treePositions.length)
-});
+var trees;
+
+function loadTrees (levelData, width, height) {
+	for (var x = 0; x < width; x++) {
+		for (var y = 0; y < height; y++) {
+			var green = levelData[(x + width * y) * 4 + 1];
+
+			if (green === 255) {
+				var position = [x / width, 1.0 - y / height];
+				//console.log("found tree!", position);
+				treePositions.push(position);
+			}
+		}
+	}
+
+	trees = new GLOW.Shader({
+		vertexShader: loadSynchronous("shaders/trees.vert"),
+		fragmentShader: loadSynchronous("shaders/trees.frag"),
+		data: {
+			vertices: branchVertices(new Float32Array(treePositions.length * nBranchesPerTree * 3 * 6), nBranchesPerTree, treePositions.length),
+			info: branchInfo(new Float32Array(treePositions.length * nBranchesPerTree * 4 * 6), nBranchesPerTree, treePositions.length, 4),
+			transform: new GLOW.Matrix4(),
+			cameraInverse: camera.inverse,
+			cameraProjection: camera.projection,
+			terrainSize: new GLOW.Float(terrainSize),
+			level: level,
+			foliage: foliage.input
+		},
+		indices: branchTriangles(new Uint16Array(treePositions.length * nBranchesPerTree * 3 * 6), nBranchesPerTree, treePositions.length)
+	});
+}
 
 function drawTrees () {
-	trees.draw();
+	if (trees){
+		trees.uniforms.foliage.data = foliage.input;
+		trees.draw();
+	}
 }

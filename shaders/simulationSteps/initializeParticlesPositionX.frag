@@ -3,6 +3,8 @@
 #endif
 
 varying vec2 particleLookupCoordinate;
+uniform sampler2D spawnPointMap;
+uniform float nSpawnPointsRoot;
 
 vec4 encode (float f) {
     vec4 enc = vec4(1.0, 255.0, 65025.0, 160581375.0) * f;
@@ -16,5 +18,6 @@ float rand(vec2 co){
 }
 
 void main (void) {
-    gl_FragColor = encode(particleLookupCoordinate.x / 2.0 + 0.25 + 0.01 * rand(particleLookupCoordinate));
+    vec4 spawnPoint = texture2D(spawnPointMap, particleLookupCoordinate);
+    gl_FragColor = encode(spawnPoint.x + particleLookupCoordinate.x / 16.0 + 0.01 * rand(particleLookupCoordinate));
 }
