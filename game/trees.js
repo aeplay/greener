@@ -94,6 +94,18 @@ function branchInfo (outInfo, nBranchesPerTree, nTrees, branchingFactor) {
 	return outInfo;
 }
 
+function leavesInfo (outInfo, nLeavesPerTree, nTrees) {
+	for (var t = 0; t < nTrees; t++) {
+		for (var i = 0; i < nLeavesPerTree; i++) {
+			outInfo[(t * 64 + i) * 3] = 1 + 4 + 16 + i;
+			outInfo[(t * 64 + i) * 3 + 1] = treePositions[t][0];
+			outInfo[(t * 64 + i) * 3 + 2] = treePositions[t][1];
+		}
+	}
+
+	return outInfo;
+}
+
 function branchTriangles (outIndices, nBranchesPerTree, nTrees) {
 
 	for (var t = 0; t < nTrees; t++) {
@@ -144,6 +156,7 @@ const treePositions = [
 ];
 
 var trees;
+var treeLeaves;
 
 function loadTrees (levelData, width, height) {
 	for (var x = 0; x < width; x++) {
@@ -173,11 +186,51 @@ function loadTrees (levelData, width, height) {
 		},
 		indices: branchTriangles(new Uint16Array(treePositions.length * nBranchesPerTree * 3 * 6), nBranchesPerTree, treePositions.length)
 	});
+
+	treeLeaves = new GLOW.Shader({
+		vertexShader: loadSynchronous("shaders/treeLeaves.vert"),
+		fragmentShader: loadSynchronous("shaders/treeLeaves.frag"),
+		data: {
+			vertices: new Float32Array(3 * 64 * treePositions.length),
+			info: leavesInfo(new Float32Array(3 * 64 * treePositions.length), 64, treePositions.length, 4),
+			transform: new GLOW.Matrix4(),
+			cameraInverse: camera.inverse,
+			cameraProjection: camera.projection,
+			terrainSize: new GLOW.Float(terrainSize),
+			level: level,
+			foliage: foliage.input
+		},
+		primitives: GL.POINTS
+	});
 }
 
 function drawTrees () {
 	if (trees){
 		trees.uniforms.foliage.data = foliage.input;
+		treeLeaves.uniforms.foliage.data = foliage.input;
 		trees.draw();
+		treeLeaves.draw();
 	}
+}
+
+function readTrees () {
+	//const pixel = new Uint8Array(4);
+	//
+	//var grown = 0;
+	//var dead = 0;
+	//
+	//for (var t = 0; t < treePositions.length; t++) {
+	//	var x = Math.round(treePositions[t][0] * terrainResolution/4);
+	//	var y = Math.round(treePositions[t][1] * terrainResolution/4);
+	//	GL.readPixels(x, y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixel);
+	//
+	//	if (pixel[3] <= 0.1 * 255){
+	//		if (pixel[2] > 0.03 * 255) grown++;
+	//	} else dead++;
+	//
+	//	var ungrown = treePositions.length - grown - dead;
+	//	nUngrown.innerText = ungrown;
+	//	nGrown.innerText = grown;
+	//	nDead.innerText = dead;
+	//}
 }

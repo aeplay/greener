@@ -19,5 +19,5 @@ float rand(vec2 co){
 
 void main (void) {
     vec4 spawnPoint = texture2D(spawnPointMap, particleLookupCoordinate);
-    gl_FragColor = encode(spawnPoint.x + particleLookupCoordinate.x / 16.0 + 0.01 * rand(particleLookupCoordinate));
+    gl_FragColor = encode(spawnPoint.x + particleLookupCoordinate.x / 64.0 + 0.01 * rand(particleLookupCoordinate));
 }

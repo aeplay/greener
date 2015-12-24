@@ -33,7 +33,7 @@ void main()
 
     gl_FragColor.r = (1.0 - 10.0 * dt) * oldInfo.r + 10.0 * dt * newFoliagity;
     gl_FragColor.g = center.g;
-    if (center.g < 0.1) {
+    if (center.g < 0.05) {
         gl_FragColor.b = max(oldInfo.b, newFoliagity);
     } else {
         gl_FragColor.b = oldInfo.b;
