@@ -29,6 +29,7 @@ window.render = function () {
 
 	drawTerrain();
 	drawWater();
+	drawTrees();
 	window.requestAnimationFrame(render);
 
 };
