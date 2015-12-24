@@ -13,7 +13,7 @@ const particleViscosity = 0.3;
 const terrainResolution = 256;
 const terrainSize = 256;
 
-const level = new GLOW.Texture({url: 'levels/level.png?' + Math.floor(Math.random() * 10000), flipY: true, onLoadComplete: function () {
+const level = new GLOW.Texture({url: 'levels/level1.png?' + Math.floor(Math.random() * 10000), flipY: true, onLoadComplete: function () {
 	var canvas = document.createElement('canvas');
 	canvas.width = level.data.width;
 	canvas.height = level.data.height;

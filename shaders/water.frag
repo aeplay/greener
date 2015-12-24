@@ -37,7 +37,7 @@ void main(void) {
 
     float pressure = data.r;
 
-    if (pressure < 0.1)
+    if (pressure < 0.01)
         gl_FragColor = vec4(1.0, 1.0, 1.0, 0.0);
     else
         gl_FragColor = sqrt(pressure) * 4.0 * vec4(0.2, 0.5, 0.8, 0.5) + (1.0 - sqrt(pressure) * 4.0) * vec4(0.8, 0.8, 1.0, 0.4), vec4(pressure * 3.0);
